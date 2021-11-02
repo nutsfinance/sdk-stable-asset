@@ -1,0 +1,27 @@
+{
+  "name": "acala-network-sdk-swap-nuts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nutsfinance/acala-network-sdk-swap-nuts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nutsfinance/acala-network-sdk-swap-nuts/issues"
+  },
+  "homepage": "https://github.com/nutsfinance/acala-network-sdk-swap-nuts#readme",
+  "devDependencies": {
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "@acala-network/sdk-swap": "^3.0.2"
+  }
+}
