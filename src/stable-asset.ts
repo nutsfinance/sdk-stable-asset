@@ -22,8 +22,14 @@ export interface PoolInfo {
 }
 
 export interface SwapResult {
-    delta: FixedPointNumber,
-    balance: FixedPointNumber
+    outputAmount: FixedPointNumber,
+    feeAmount: number,
+    oldPrice: number,
+    newPrice: number
+}
+
+export interface MintResult {
+
 }
 
 export class StableAssetRx {
@@ -46,6 +52,18 @@ export class StableAssetRx {
     }
     
     public getSwapAmount(poolAsset: CurrencyId, input: FixedPointNumber, output: FixedPointNumber, inputAmount: FixedPointNumber): SwapResult {
+        return {}
+    }
 
+    public swap(poolAsset: CurrencyId, input: FixedPointNumber, output: FixedPointNumber, inputAmount: FixedPointNumber, minOutput: number) {
+
+    }
+
+    public getMintAmount(poolAsset: CurrencyId, inputAmounts: number[]): MintResult {
+
+    }
+
+    public mint(poolAsset: CurrencyId, inputAmounts: number[], minMintAmount: number) {
+        
     }
 }
