@@ -1,11 +1,14 @@
 
 import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { from } from 'rxjs';
+import { map, mergeMap } from 'rxjs/operators';
 import { assert } from '@polkadot/util';
 import { forceToCurrencyId, MaybeCurrency, Token } from '@acala-network/sdk-core';
 import { CurrencyId, Position, AccountId } from '@acala-network/types/interfaces';
 import { DerivedLoanType } from '@acala-network/api-derive';
 import { ApiRx } from '@polkadot/api';
+import { Option } from '@polkadot/types/codec';
+import { Codec } from '@polkadot/types/types';
 import { memoize } from 'lodash';
 import BigNumber from 'bignumber.js';
 
@@ -32,32 +35,31 @@ export interface MintResult {
   feeAmount: BigNumber
 }
 
-export interface MintResult {
-
-}
-
 export class StableAssetRx {
   private api: ApiRx;
-  private poolInfos$: BehaviorSubject<PoolInfo[]>;
 
   constructor(api: ApiRx) {
     this.api = api;
-    this.poolInfos$ = new BehaviorSubject<PoolInfo[]>([]);
   }
 
-  get availablePools(): Observable<PoolInfo[]> {
-    return this.poolInfos$;
+  public getAvailablePools(): Observable<PoolInfo[]> {
+    return this.api.query.stableAsset.poolCount()
+      .pipe(
+        mergeMap(res => {
+          let count: unknown = res;
+          let arr = [];
+          for (let i = 0; i < (count as number); i++) {
+            arr.push(this.getPoolInfo(i));
+          }
+          return combineLatest(arr);
+      }));
   }
 
-  // Return observable of current stable asset pools
-  // E.g. https://github.com/AcalaNetwork/acala.js/blob/master/packages/sdk-swap/src/swap-rx.ts#L42
-  private getAvailablePools(): Observable<PoolInfo[]> {
-
-  }
-
-  private getPoolInfo(poolId: number): Observable<PoolInfo> {
-    let poolInfo = this.api.query.stableAsset.pools(poolId);
-    return poolInfo;
+  public getPoolInfo(poolId: number): Observable<PoolInfo> {
+    return this.api.query.stableAsset.pools(poolId).pipe(map(poolInfoOption => {
+      let poolInfo: unknown = (poolInfoOption as Option<Codec>).unwrap();
+      return poolInfo as PoolInfo;
+    }));
   }
 
   private getD(balances: BigNumber[], a: BigNumber): BigNumber {
