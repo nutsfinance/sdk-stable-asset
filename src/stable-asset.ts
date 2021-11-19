@@ -10,29 +10,29 @@ import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
 import { Codec } from '@polkadot/types/types';
 import { memoize } from 'lodash';
-import BigNumber from 'bignumber.js';
+import { FixedPointNumber } from '@acala-network/sdk-core/fixed-point-number';
 
 export interface PoolInfo {
   poolAsset: CurrencyId,
   assets: CurrencyId[],
-  precisions: BigNumber[],
-  mintFee: BigNumber,
-  swapFee: BigNumber,
-  redeemFee: BigNumber,
-  totalSupply: BigNumber,
-  a: BigNumber,
-  balances: BigNumber[],
+  precisions: FixedPointNumber[],
+  mintFee: FixedPointNumber,
+  swapFee: FixedPointNumber,
+  redeemFee: FixedPointNumber,
+  totalSupply: FixedPointNumber,
+  a: FixedPointNumber,
+  balances: FixedPointNumber[],
   feeRecipient: AccountId
 }
 
 export interface SwapResult {
-  outputAmount: BigNumber,
-  feeAmount: BigNumber
+  outputAmount: FixedPointNumber,
+  feeAmount: FixedPointNumber
 }
 
 export interface MintResult {
-  outputAmount: BigNumber,
-  feeAmount: BigNumber
+  outputAmount: FixedPointNumber,
+  feeAmount: FixedPointNumber
 }
 
 export class StableAssetRx {
@@ -62,24 +62,24 @@ export class StableAssetRx {
     }));
   }
 
-  private getD(balances: BigNumber[], a: BigNumber): BigNumber {
-    let sum: BigNumber = new BigNumber(0);
-    let ann: BigNumber = a;
-    let balanceLength: BigNumber = new BigNumber(balances.length);
-    let one: BigNumber = new BigNumber(1);
+  private getD(balances: FixedPointNumber[], a: FixedPointNumber): FixedPointNumber {
+    let sum: FixedPointNumber = new FixedPointNumber(0);
+    let ann: FixedPointNumber = a;
+    let balanceLength: FixedPointNumber = new FixedPointNumber(balances.length);
+    let one: FixedPointNumber = new FixedPointNumber(1);
 
     for (let i = 0; i < balances.length; i++) {
       sum = sum.plus(balances[i]);
       ann = ann.times(balanceLength);
     }
     if (sum.isZero()) {
-      return new BigNumber(0);
+      return new FixedPointNumber(0);
     }
 
-    let prevD: BigNumber = new BigNumber(0);
-    let d: BigNumber = sum;
+    let prevD: FixedPointNumber = new FixedPointNumber(0);
+    let d: FixedPointNumber = sum;
     for (let i = 0; i < 255; i++) {
-      let pD: BigNumber = d;
+      let pD: FixedPointNumber = d;
       for (let j = 0; j < balances.length; j++) {
         pD = pD.times(d).div(balances[j].times(balanceLength));
       }
@@ -90,11 +90,11 @@ export class StableAssetRx {
       .times(d)
       .div(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
       if (d > prevD) {
-        if (d.minus(prevD).comparedTo(one) <= 0) {
+        if (d.minus(prevD).isLessOrEqualTo(one)) {
           break;
         }
       } else {
-        if (prevD.minus(d).comparedTo(one) <= 0) {
+        if (prevD.minus(d).isLessOrEqualTo(one)) {
           break;
         }
       }
@@ -103,12 +103,12 @@ export class StableAssetRx {
     return d;
   }
 
-  private getY(balances: BigNumber[], j: number, d: BigNumber, a: BigNumber): BigNumber {
-    let c: BigNumber = d;
-    let sum: BigNumber = new BigNumber(0);
-    let ann: BigNumber = a;
-    let balanceLength: BigNumber = new BigNumber(balances.length);
-    let one: BigNumber = new BigNumber(1);
+  private getY(balances: FixedPointNumber[], j: number, d: FixedPointNumber, a: FixedPointNumber): FixedPointNumber {
+    let c: FixedPointNumber = d;
+    let sum: FixedPointNumber = new FixedPointNumber(0);
+    let ann: FixedPointNumber = a;
+    let balanceLength: FixedPointNumber = new FixedPointNumber(balances.length);
+    let one: FixedPointNumber = new FixedPointNumber(1);
 
     for (let i = 0; i < balances.length; i++) {
       ann = ann.times(balanceLength);
@@ -119,19 +119,19 @@ export class StableAssetRx {
       c = c.times(d).div(balances[i].times(balanceLength));
     }
     c = c.times(d).div(ann.times(balanceLength));
-    let b: BigNumber = sum.plus(d.div(ann));
-    let prevY: BigNumber = new BigNumber(0);
-    let y: BigNumber = d;
+    let b: FixedPointNumber = sum.plus(d.div(ann));
+    let prevY: FixedPointNumber = new FixedPointNumber(0);
+    let y: FixedPointNumber = d;
 
     for (let i = 0; i < 255; i++) {
       prevY = y;
-      y = y.times(y).plus(c).div(y.times(new BigNumber(2)).plus(b).minus(d));
+      y = y.times(y).plus(c).div(y.times(new FixedPointNumber(2)).plus(b).minus(d));
       if (y > prevY) {
-        if (y.minus(prevY).comparedTo(one) <= 0) {
+        if (y.minus(prevY).isLessOrEqualTo(one)) {
           break;
         }
       } else {
-        if (prevY.minus(y).comparedTo(one) <= 0) {
+        if (prevY.minus(y).isLessOrEqualTo(one)) {
           break;
         }
       }
@@ -140,18 +140,18 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, input: number, output: number, inputAmount: BigNumber): Observable<SwapResult> {
+  public getSwapAmount(poolId: number, input: number, output: number, inputAmount: FixedPointNumber): Observable<SwapResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
-      let feeDenominator: BigNumber = new BigNumber(10).pow(10);
-      let balances: BigNumber[] = poolInfo.balances;
-      let a: BigNumber = poolInfo.a;
-      let d: BigNumber = poolInfo.totalSupply;
+      let feeDenominator: FixedPointNumber = new FixedPointNumber("10000000000");
+      let balances: FixedPointNumber[] = poolInfo.balances;
+      let a: FixedPointNumber = poolInfo.a;
+      let d: FixedPointNumber = poolInfo.totalSupply;
       balances[input] = balances[input].plus(inputAmount.times(poolInfo.precisions[output]));
-      let y: BigNumber = this.getY(balances, output, d, a);
-      let dy: BigNumber = balances[output].minus(y).minus(new BigNumber(1)).div(poolInfo.precisions[output]);
+      let y: FixedPointNumber = this.getY(balances, output, d, a);
+      let dy: FixedPointNumber = balances[output].minus(y).minus(new FixedPointNumber(1)).div(poolInfo.precisions[output]);
 
-      let feeAmount: BigNumber = new BigNumber(0);
-      if (poolInfo.swapFee.comparedTo(new BigNumber(0)) > 0) {
+      let feeAmount: FixedPointNumber = new FixedPointNumber(0);
+      if (poolInfo.swapFee.isGreaterThan(new FixedPointNumber(0))) {
         feeAmount = dy.times(poolInfo.swapFee).div(feeDenominator);
         dy = dy.minus(feeAmount);
       }
@@ -163,16 +163,16 @@ export class StableAssetRx {
     }));
   }
 
-  public swap(poolId: number, input: number, output: number, inputAmount: BigNumber, minOutput: BigNumber) {
+  public swap(poolId: number, input: number, output: number, inputAmount: FixedPointNumber, minOutput: FixedPointNumber) {
     return this.api.tx.stableAsset.swap(poolId, input, output, inputAmount, minOutput);
   }
 
-  public getMintAmount(poolId: number, inputAmounts: BigNumber[]): Observable<MintResult> {
+  public getMintAmount(poolId: number, inputAmounts: FixedPointNumber[]): Observable<MintResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
-      let balances: BigNumber[] = poolInfo.balances;
-      let a: BigNumber = poolInfo.a;
-      let oldD: BigNumber = poolInfo.totalSupply;
-      let feeDenominator: BigNumber = new BigNumber(10).pow(10);
+      let balances: FixedPointNumber[] = poolInfo.balances;
+      let a: FixedPointNumber = poolInfo.a;
+      let oldD: FixedPointNumber = poolInfo.totalSupply;
+      let feeDenominator: FixedPointNumber = new FixedPointNumber("10000000000");
 
       for (let i = 0; i < balances.length; i++) {
         if (inputAmounts[i].isZero()) {
@@ -181,12 +181,12 @@ export class StableAssetRx {
         // balance = balance + amount * precision
         balances[i] = balances[i].plus(inputAmounts[i].times(poolInfo.precisions[i]));
       }
-      let newD: BigNumber = this.getD(balances, a);
+      let newD: FixedPointNumber = this.getD(balances, a);
       // newD should be bigger than or equal to oldD
-      let mintAmount: BigNumber = newD.minus(oldD);
-      let feeAmount: BigNumber = new BigNumber(0);
+      let mintAmount: FixedPointNumber = newD.minus(oldD);
+      let feeAmount: FixedPointNumber = new FixedPointNumber(0);
 
-      if (poolInfo.mintFee.comparedTo(new BigNumber(0)) > 0) {
+      if (poolInfo.mintFee.isGreaterThan(new FixedPointNumber(0))) {
         feeAmount = mintAmount.times(poolInfo.mintFee).div(feeDenominator);
         mintAmount = mintAmount.minus(feeAmount);
       }
@@ -199,7 +199,7 @@ export class StableAssetRx {
 
   }
 
-  public mint(poolId: number, inputAmounts: BigNumber[], minMintAmount: BigNumber) {
+  public mint(poolId: number, inputAmounts: FixedPointNumber[], minMintAmount: FixedPointNumber) {
     return this.api.tx.stableAsset.swap(poolId, inputAmounts, minMintAmount);
   }
 }
