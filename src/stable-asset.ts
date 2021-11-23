@@ -57,9 +57,28 @@ export class StableAssetRx {
 
   public getPoolInfo(poolId: number): Observable<PoolInfo> {
     return this.api.query.stableAsset.pools(poolId).pipe(map(poolInfoOption => {
-      let poolInfo: unknown = (poolInfoOption as Option<Codec>).unwrap();
-      return poolInfo as PoolInfo;
+      let poolInfo: any = (poolInfoOption as Option<Codec>).unwrap();
+      return {
+        poolAsset: poolInfo.poolAsset,
+        assets: poolInfo.assets,
+        precisions: this.convertToFixPointNumber(poolInfo.precisions),
+        mintFee: new FixedPointNumber(poolInfo.mintFee.toString()),
+        swapFee: new FixedPointNumber(poolInfo.swapFee.toString()),
+        redeemFee: new FixedPointNumber(poolInfo.redeemFee.toString()),
+        totalSupply: new FixedPointNumber(poolInfo.totalSupply.toString()),
+        a: new FixedPointNumber(poolInfo.a.toHuman()),
+        balances: this.convertToFixPointNumber(poolInfo.balances),
+        feeRecipient: poolInfo.feeRecipient
+      }
     }));
+  }
+
+  private convertToFixPointNumber(a: any[]): FixedPointNumber[] {
+    let result: FixedPointNumber[] = [];
+    for (let i = 0; i < a.length; i++) {
+      result.push(new FixedPointNumber(a[i].toString()));
+    }
+    return result;
   }
 
   private getD(balances: FixedPointNumber[], a: FixedPointNumber): FixedPointNumber {
@@ -155,7 +174,12 @@ export class StableAssetRx {
         feeAmount = dy.times(poolInfo.swapFee).div(feeDenominator);
         dy = dy.minus(feeAmount);
       }
-
+      if (dy.isLessThan(new FixedPointNumber(0))) {
+        return {
+          outputAmount: new FixedPointNumber(0),
+          feeAmount: new FixedPointNumber(0)
+        }
+      }
       return {
         outputAmount: dy,
         feeAmount: feeAmount

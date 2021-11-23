@@ -43,3 +43,4 @@ build/
 *.tar
 
 .DS_Store
+generated
