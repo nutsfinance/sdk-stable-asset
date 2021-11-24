@@ -1,6 +1,6 @@
 {
-  "name": "sdk-stable-asset",
-  "version": "1.0.0",
+  "name": "@nuts-finance/sdk-stable-asset",
+  "version": "1.0.5",
   "description": "",
   "main": "index.js",
   "scripts": {
