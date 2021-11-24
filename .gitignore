@@ -44,3 +44,5 @@ build/
 
 .DS_Store
 generated
+
+dist/
