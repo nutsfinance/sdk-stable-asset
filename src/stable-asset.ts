@@ -183,8 +183,8 @@ export class StableAssetRx {
         }
       }
       return {
-        outputAmount: FixedPointNumber._fromBN(dy, inputAmount.getPrecision()),
-        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision())
+        outputAmount: FixedPointNumber._fromBN(dy, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber())),
+        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber()))
       };
     }));
   }
@@ -218,8 +218,8 @@ export class StableAssetRx {
       }
 
       return {
-        outputAmount: FixedPointNumber._fromBN(mintAmount, inputAmounts[0].getPrecision()),
-        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmounts[0].getPrecision())
+        outputAmount: FixedPointNumber._fromBN(mintAmount, inputAmounts[0].getPrecision() + Math.log10(poolInfo.precisions[0].toNumber())),
+        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmounts[0].getPrecision() + Math.log10(poolInfo.precisions[0].toNumber()))
       };
     }));
 
