@@ -183,8 +183,8 @@ export class StableAssetRx {
         }
       }
       return {
-        outputAmount: FixedPointNumber._fromBN(dy),
-        feeAmount: FixedPointNumber._fromBN(feeAmount)
+        outputAmount: FixedPointNumber._fromBN(dy, inputAmount.getPrecision()),
+        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision())
       };
     }));
   }
@@ -218,8 +218,8 @@ export class StableAssetRx {
       }
 
       return {
-        outputAmount: FixedPointNumber._fromBN(mintAmount),
-        feeAmount: FixedPointNumber._fromBN(feeAmount)
+        outputAmount: FixedPointNumber._fromBN(mintAmount, inputAmounts[0].getPrecision()),
+        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmounts[0].getPrecision())
       };
     }));
 
