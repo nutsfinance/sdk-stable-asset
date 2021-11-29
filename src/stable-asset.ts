@@ -1,11 +1,11 @@
 
-import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
+import { Observable, combineLatest } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
-import { CurrencyId, Position, AccountId } from '@acala-network/types/interfaces';
+import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
 import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
 import { Codec } from '@polkadot/types/types';
-import { FixedPointNumber } from '@acala-network/sdk-core/fixed-point-number';
+import { FixedPointNumber, Token, TokenBalance } from '@acala-network/sdk-core';
 import { BigNumber } from 'bignumber.js';
 
 import { StableSwapResult } from './stable-swap-result';
@@ -21,6 +21,15 @@ export interface PoolInfo {
   a: BigNumber,
   balances: BigNumber[],
   feeRecipient: AccountId
+}
+
+export interface StableSwapParameters {
+  poolId: number,
+  inputIndex: number,
+  outputIndex: number,
+  inputToken: Token,
+  outputToken: Token,
+  inputAmount: FixedPointNumber
 }
 
 export interface MintResult {
@@ -152,15 +161,15 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, input: number, output: number, inputAmount: FixedPointNumber): Observable<StableSwapResult> {
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+  public getSwapAmount(params: StableSwapParameters): Observable<StableSwapResult> {
+    return this.getPoolInfo(params.poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
-      balances[input] = balances[input].plus(inputAmount._getInner().times(poolInfo.precisions[output]));
-      let y: BigNumber = this.getY(balances, output, d, a);
-      let dy: BigNumber = balances[output].minus(y).minus(new BigNumber(1)).div(poolInfo.precisions[output]);
+      balances[params.inputIndex] = balances[params.inputIndex].plus(params.inputAmount._getInner().times(poolInfo.precisions[params.outputIndex]));
+      let y: BigNumber = this.getY(balances, params.outputIndex, d, a);
+      let dy: BigNumber = balances[params.outputIndex].minus(y).minus(new BigNumber(1)).div(poolInfo.precisions[params.outputIndex]);
 
       let feeAmount: BigNumber = new BigNumber(0);
       if (poolInfo.swapFee.isGreaterThan(new BigNumber(0))) {
@@ -170,21 +179,21 @@ export class StableAssetRx {
       console.log("dy: " + dy);
       if (dy.isLessThan(new BigNumber(0))) {
         return new StableSwapResult(
-          poolId,
-          input,
-          output,
-          inputAmount,
-          new FixedPointNumber(0),
+          params.poolId,
+          params.inputIndex,
+          params.outputIndex,
+          new TokenBalance(params.inputToken, params.inputAmount),
+          new TokenBalance(params.outputToken, new FixedPointNumber(0)),
           new FixedPointNumber(0)
         );
       }
       return new StableSwapResult(
-        poolId,
-        input,
-        output,
-        inputAmount,
-        FixedPointNumber._fromBN(dy, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber())),
-        FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber()))
+        params.poolId,
+        params.inputIndex,
+        params.outputIndex,
+        new TokenBalance(params.inputToken, params.inputAmount),
+        new TokenBalance(params.outputToken, FixedPointNumber._fromBN(dy, params.inputAmount.getPrecision() + Math.log10(poolInfo.precisions[params.inputIndex].toNumber()))),
+        FixedPointNumber._fromBN(feeAmount, params.inputAmount.getPrecision() + Math.log10(poolInfo.precisions[params.inputIndex].toNumber()))
       );
     }));
   }
