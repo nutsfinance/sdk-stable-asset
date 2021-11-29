@@ -1,17 +1,14 @@
 
 import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
-import { from } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
-import { assert } from '@polkadot/util';
-import { forceToCurrencyId, MaybeCurrency, Token } from '@acala-network/sdk-core';
 import { CurrencyId, Position, AccountId } from '@acala-network/types/interfaces';
-import { DerivedLoanType } from '@acala-network/api-derive';
 import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
 import { Codec } from '@polkadot/types/types';
-import { memoize } from 'lodash';
 import { FixedPointNumber } from '@acala-network/sdk-core/fixed-point-number';
 import { BigNumber } from 'bignumber.js';
+
+import { StableSwapResult } from './stable-swap-result';
 
 export interface PoolInfo {
   poolAsset: CurrencyId,
@@ -24,11 +21,6 @@ export interface PoolInfo {
   a: BigNumber,
   balances: BigNumber[],
   feeRecipient: AccountId
-}
-
-export interface SwapResult {
-  outputAmount: FixedPointNumber,
-  feeAmount: FixedPointNumber
 }
 
 export interface MintResult {
@@ -160,7 +152,7 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, input: number, output: number, inputAmount: FixedPointNumber): Observable<SwapResult> {
+  public getSwapAmount(poolId: number, input: number, output: number, inputAmount: FixedPointNumber): Observable<StableSwapResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
       let balances: BigNumber[] = poolInfo.balances;
@@ -177,15 +169,23 @@ export class StableAssetRx {
       }
       console.log("dy: " + dy);
       if (dy.isLessThan(new BigNumber(0))) {
-        return {
-          outputAmount: new FixedPointNumber(0),
-          feeAmount: new FixedPointNumber(0)
-        }
+        return new StableSwapResult(
+          poolId,
+          input,
+          output,
+          inputAmount,
+          new FixedPointNumber(0),
+          new FixedPointNumber(0)
+        );
       }
-      return {
-        outputAmount: FixedPointNumber._fromBN(dy, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber())),
-        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber()))
-      };
+      return new StableSwapResult(
+        poolId,
+        input,
+        output,
+        inputAmount,
+        FixedPointNumber._fromBN(dy, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber())),
+        FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[input].toNumber()))
+      );
     }));
   }
 
