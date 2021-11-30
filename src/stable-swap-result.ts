@@ -19,13 +19,13 @@ export class StableSwapResult {
     this.exchangeRate = output.balance.div(input.balance);
   }
 
-  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: FixedPointNumber, minOutput: FixedPointNumber] {
+  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minOutput: string] {
     return [
         this.poolId,
         this.inputIndex,
         this.outputIndex,
-        this.input.balance,
-        this.output.balance
+        this.input.balance.toChainData(),
+        this.output.balance.toChainData()
     ];
   }
 }
