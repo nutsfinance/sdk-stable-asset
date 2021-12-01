@@ -9,6 +9,7 @@ import { FixedPointNumber, Token, TokenBalance } from '@acala-network/sdk-core';
 import { BigNumber } from 'bignumber.js';
 
 import { StableSwapResult } from './stable-swap-result';
+import { StableMintResult } from './stable-mint-result';
 
 export interface PoolInfo {
   poolAsset: CurrencyId,
@@ -21,11 +22,6 @@ export interface PoolInfo {
   a: BigNumber,
   balances: BigNumber[],
   feeRecipient: AccountId
-}
-
-export interface MintResult {
-  outputAmount: FixedPointNumber,
-  feeAmount: FixedPointNumber
 }
 
 export class StableAssetRx {
@@ -202,7 +198,7 @@ export class StableAssetRx {
     return this.api.tx.stableAsset.swap(poolId, input, output, inputAmount, minOutput);
   }
 
-  public getMintAmount(poolId: number, inputAmounts: FixedPointNumber[]): Observable<MintResult> {
+  public getMintAmount(poolId: number, inputs: TokenBalance[], outputToken: Token): Observable<StableMintResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
@@ -210,11 +206,11 @@ export class StableAssetRx {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
 
       for (let i = 0; i < balances.length; i++) {
-        if (inputAmounts[i].isZero()) {
+        if (inputs[i].balance.isZero()) {
           continue;
         }
         // balance = balance + amount * precision
-        balances[i] = balances[i].plus(inputAmounts[i]._getInner().times(poolInfo.precisions[i]));
+        balances[i] = balances[i].plus(inputs[i].balance._getInner().times(poolInfo.precisions[i]));
       }
       let newD: BigNumber = this.getD(balances, a);
       // newD should be bigger than or equal to oldD
@@ -226,10 +222,12 @@ export class StableAssetRx {
         mintAmount = mintAmount.minus(feeAmount);
       }
 
-      return {
-        outputAmount: FixedPointNumber._fromBN(mintAmount, inputAmounts[0].getPrecision() + Math.log10(poolInfo.precisions[0].toNumber())),
-        feeAmount: FixedPointNumber._fromBN(feeAmount, inputAmounts[0].getPrecision() + Math.log10(poolInfo.precisions[0].toNumber()))
-      };
+      return new StableMintResult(
+        poolId,
+        inputs, 
+        new TokenBalance(outputToken, FixedPointNumber._fromBN(mintAmount)),
+        FixedPointNumber._fromBN(feeAmount)
+        );
     }));
 
   }
