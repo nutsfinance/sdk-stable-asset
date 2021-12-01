@@ -153,7 +153,7 @@ export class StableAssetRx {
   }
 
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
-      inputAmount: FixedPointNumber): Observable<StableSwapResult> {
+      inputAmount: FixedPointNumber, ldotExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
       let balances: BigNumber[] = poolInfo.balances;
