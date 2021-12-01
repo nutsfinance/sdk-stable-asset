@@ -101,7 +101,7 @@ export class StableAssetRx {
       .plus(pD.times(balanceLength))
       .times(d)
       .div(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
-      if (d > prevD) {
+      if (d.comparedTo(prevD) > 0) {
         if (d.minus(prevD).isLessThanOrEqualTo(one)) {
           break;
         }
@@ -138,7 +138,7 @@ export class StableAssetRx {
     for (let i = 0; i < 255; i++) {
       prevY = y;
       y = y.times(y).plus(c).div(y.times(new BigNumber(2)).plus(b).minus(d));
-      if (y > prevY) {
+      if (y.comparedTo(prevY) > 0) {
         if (y.minus(prevY).isLessThanOrEqualTo(one)) {
           break;
         }
@@ -156,6 +156,14 @@ export class StableAssetRx {
       inputAmount: FixedPointNumber, ldotExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
+      let inputTokenFromPool = poolInfo.assets[inputIndex].toHuman();
+      if (inputTokenFromPool != null) {
+        let inputTokenSymbol = JSON.stringify(inputTokenFromPool);
+        if (inputTokenSymbol.includes("LDOT")) {
+          inputAmount = inputAmount.div(ldotExchangeRate);
+        }
+      }
+
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
