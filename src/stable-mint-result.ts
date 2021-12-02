@@ -2,22 +2,23 @@ import { FixedPointNumber, TokenBalance } from '@acala-network/sdk-core';
 
 export class StableMintResult {
   public poolId: number;
-  public inputs: TokenBalance[];
-  public output: TokenBalance;
+  public inputAmounts: FixedPointNumber[];
+  public incrementShareWithSlippage: FixedPointNumber;
   public mintFee: FixedPointNumber;
 
-  constructor(poolId: number, inputs: TokenBalance[], output: TokenBalance, fee: FixedPointNumber) {
+  constructor(poolId: number, inputAmounts: FixedPointNumber[],
+    incrementShareWithSlippage: FixedPointNumber, fee: FixedPointNumber) {
     this.poolId = poolId;
-    this.inputs = inputs;
-    this.output = output;
+    this.inputAmounts = inputAmounts;
+    this.incrementShareWithSlippage = incrementShareWithSlippage;
     this.mintFee = fee;
   }
 
   public toChainData(): [poolId: number, inputAmounts: string[], minMintAmount: string] {
     return [
         this.poolId,
-        this.inputs.map(input => input.balance.toChainData()),
-        this.output.balance.toChainData()
+        this.inputAmounts.map(input => input.toChainData()),
+        this.incrementShareWithSlippage.toChainData()
     ];
   }
 }

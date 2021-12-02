@@ -198,7 +198,7 @@ export class StableAssetRx {
     return this.api.tx.stableAsset.swap(poolId, input, output, inputAmount, minOutput);
   }
 
-  public getMintAmount(poolId: number, inputs: TokenBalance[], outputToken: Token): Observable<StableMintResult> {
+  public getMintAmount(poolId: number, inputs: FixedPointNumber[], slippage: number): Observable<StableMintResult> {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
@@ -206,11 +206,11 @@ export class StableAssetRx {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
 
       for (let i = 0; i < balances.length; i++) {
-        if (inputs[i].balance.isZero()) {
+        if (inputs[i].isZero()) {
           continue;
         }
         // balance = balance + amount * precision
-        balances[i] = balances[i].plus(inputs[i].balance._getInner().times(poolInfo.precisions[i]));
+        balances[i] = balances[i].plus(inputs[i]._getInner().times(poolInfo.precisions[i]));
       }
       let newD: BigNumber = this.getD(balances, a);
       // newD should be bigger than or equal to oldD
@@ -221,11 +221,11 @@ export class StableAssetRx {
         feeAmount = mintAmount.times(poolInfo.mintFee).div(feeDenominator);
         mintAmount = mintAmount.minus(feeAmount);
       }
-
+      let slippagePercent = new BigNumber(1 - slippage);
       return new StableMintResult(
         poolId,
-        inputs, 
-        new TokenBalance(outputToken, FixedPointNumber._fromBN(mintAmount)),
+        inputs,
+        FixedPointNumber._fromBN(mintAmount.times(slippagePercent)),
         FixedPointNumber._fromBN(feeAmount)
         );
     }));
