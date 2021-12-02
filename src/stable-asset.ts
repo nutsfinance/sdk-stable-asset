@@ -233,6 +233,6 @@ export class StableAssetRx {
   }
 
   public mint(poolId: number, inputAmounts: FixedPointNumber[], minMintAmount: FixedPointNumber) {
-    return this.api.tx.stableAsset.swap(poolId, inputAmounts, minMintAmount);
+    return this.api.tx.stableAsset.mint(poolId, inputAmounts, minMintAmount);
   }
 }
