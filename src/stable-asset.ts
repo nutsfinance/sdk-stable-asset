@@ -1,5 +1,5 @@
 
-import { Observable, combineLatest } from 'rxjs';
+import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
 import { ApiRx } from '@polkadot/api';
@@ -26,9 +26,15 @@ export interface PoolInfo {
 
 export class StableAssetRx {
   private api: ApiRx;
+  private pools$ = new BehaviorSubject<PoolInfo[]>([]);
 
   constructor(api: ApiRx) {
     this.api = api;
+    this.getAvailablePools().subscribe(pools => this.pools$.next(pools));
+  }
+
+  get availablePools(): PoolInfo[] {
+    return this.pools$.value;
   }
 
   public getAvailablePools(): Observable<PoolInfo[]> {
