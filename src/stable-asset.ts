@@ -1,6 +1,7 @@
 
 import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
+import { Token } from '@acala-network/sdk-core';
 import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
 import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
@@ -153,11 +154,13 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputAmount: BigNumber): Observable<StableSwapResult> {
+  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token, inputAmount: BigNumber): Observable<StableSwapResult> {
     const swapParamters = {
       poolId,
       inputIndex,
       outputIndex,
+      inputToken,
+      outputToken,
       inputAmount
     };
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
