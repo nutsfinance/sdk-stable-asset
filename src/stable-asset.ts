@@ -1,7 +1,7 @@
 
 import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
-import { Token } from '@acala-network/sdk-core';
+import { Token, FixedPointNumber } from '@acala-network/sdk-core';
 import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
 import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
@@ -154,7 +154,7 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token, inputAmount: BigNumber): Observable<StableSwapResult> {
+  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token, inputAmount: FixedPointNumber): Observable<StableSwapResult> {
     const swapParamters = {
       poolId,
       inputIndex,
@@ -169,7 +169,7 @@ export class StableAssetRx {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
-      balances[inputIndex] = balances[inputIndex].plus(inputAmount.times(poolInfo.precisions[outputIndex]));
+      balances[inputIndex] = balances[inputIndex].plus(inputAmount._getInner().times(poolInfo.precisions[outputIndex]));
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).div(poolInfo.precisions[outputIndex]);
 
@@ -182,14 +182,14 @@ export class StableAssetRx {
       if (dy.isLessThan(new BigNumber(0))) {
         return new StableSwapResult(
           swapParamters,
-          new BigNumber(0),
-          new BigNumber(0)
+          new FixedPointNumber(0),
+          new FixedPointNumber(0)
         );
       }
       return new StableSwapResult(
         swapParamters,
-        dy,
-        feeAmount
+        FixedPointNumber._fromBN(dy, outputToken.decimal),
+        FixedPointNumber._fromBN(feeAmount, outputToken.decimal)
       );
     }));
   }

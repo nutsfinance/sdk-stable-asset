@@ -7,7 +7,7 @@ export interface StableSwapParameters {
   outputIndex: number;
   inputToken: Token;
   outputToken: Token;
-  inputAmount: BigNumber;
+  inputAmount: FixedPointNumber;
 }
 
 export class StableSwapResult {
@@ -16,11 +16,11 @@ export class StableSwapResult {
   public outputIndex: number;
   public inputToken: Token;
   public outputToken: Token;
-  public inputAmount: BigNumber;
-  public outputAmount: BigNumber;
-  public feeAmount: BigNumber;
+  public inputAmount: FixedPointNumber;
+  public outputAmount: FixedPointNumber;
+  public feeAmount: FixedPointNumber;
 
-  constructor(params: StableSwapParameters, outputAmount: BigNumber, feeAmount: BigNumber) {
+  constructor(params: StableSwapParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber) {
     this.poolId = params.poolId;
     this.inputIndex = params.inputIndex;
     this.outputIndex = params.outputIndex;
@@ -36,8 +36,8 @@ export class StableSwapResult {
         this.poolId,
         this.inputIndex,
         this.outputIndex,
-        FixedPointNumber.fromInner(this.inputAmount.toString(), this.inputToken.decimal).toChainData(),
-        FixedPointNumber.fromInner(this.outputAmount.toString(), this.inputToken.decimal).toChainData()
+        this.inputAmount.toChainData(),
+        this.outputAmount.toChainData()
     ];
   }
 }
