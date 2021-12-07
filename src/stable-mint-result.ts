@@ -1,24 +1,28 @@
-import { FixedPointNumber, TokenBalance } from '@acala-network/sdk-core';
+import BigNumber from "bignumber.js";
+
+export interface StableMintParameters {
+    poolId: number;
+    inputAmounts: BigNumber[];
+}
 
 export class StableMintResult {
   public poolId: number;
-  public inputAmounts: FixedPointNumber[];
-  public incrementShareWithSlippage: FixedPointNumber;
-  public mintFee: FixedPointNumber;
+  public inputAmounts: BigNumber[];
+  public outputAmount: BigNumber;
+  public feeAmount: BigNumber;
 
-  constructor(poolId: number, inputAmounts: FixedPointNumber[],
-    incrementShareWithSlippage: FixedPointNumber, fee: FixedPointNumber) {
-    this.poolId = poolId;
-    this.inputAmounts = inputAmounts;
-    this.incrementShareWithSlippage = incrementShareWithSlippage;
-    this.mintFee = fee;
+  constructor(params: StableMintParameters, outputAmount: BigNumber, feeAmount: BigNumber) {
+    this.poolId = params.poolId;
+    this.inputAmounts = params.inputAmounts;
+    this.outputAmount = outputAmount;
+    this.feeAmount = feeAmount;
   }
 
   public toChainData(): [poolId: number, inputAmounts: string[], minMintAmount: string] {
     return [
         this.poolId,
-        this.inputAmounts.map(input => input.toChainData()),
-        this.incrementShareWithSlippage.toChainData()
+        this.inputAmounts.map(input => input.toString()),
+        this.outputAmount.toString()
     ];
   }
 }

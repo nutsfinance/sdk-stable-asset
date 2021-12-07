@@ -5,7 +5,6 @@ import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
 import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
 import { Codec } from '@polkadot/types/types';
-import { FixedPointNumber, Token, TokenBalance } from '@acala-network/sdk-core';
 import { BigNumber } from 'bignumber.js';
 
 import { StableSwapResult } from './stable-swap-result';
@@ -47,7 +46,7 @@ export class StableAssetRx {
             arr.push(this.getPoolInfo(i));
           }
           return combineLatest(arr);
-      }));
+        }));
   }
 
   public getPoolInfo(poolId: number): Observable<PoolInfo> {
@@ -99,10 +98,10 @@ export class StableAssetRx {
       }
       prevD = d;
       d = ann
-      .times(sum)
-      .plus(pD.times(balanceLength))
-      .times(d)
-      .div(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
+        .times(sum)
+        .plus(pD.times(balanceLength))
+        .times(d)
+        .div(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
       if (d.comparedTo(prevD) > 0) {
         if (d.minus(prevD).isLessThanOrEqualTo(one)) {
           break;
@@ -154,22 +153,20 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
-      inputAmount: FixedPointNumber, ldotExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
+  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputAmount: BigNumber): Observable<StableSwapResult> {
+    const swapParamters = {
+      poolId,
+      inputIndex,
+      outputIndex,
+      inputAmount
+    };
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
-      let inputTokenFromPool = poolInfo.assets[inputIndex].toHuman();
-      if (inputTokenFromPool != null) {
-        let inputTokenSymbol = JSON.stringify(inputTokenFromPool);
-        if (inputTokenSymbol.includes("LDOT")) {
-          inputAmount = inputAmount.div(ldotExchangeRate);
-        }
-      }
 
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
-      balances[inputIndex] = balances[inputIndex].plus(inputAmount._getInner().times(poolInfo.precisions[outputIndex]));
+      balances[inputIndex] = balances[inputIndex].plus(inputAmount.times(poolInfo.precisions[outputIndex]));
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).div(poolInfo.precisions[outputIndex]);
 
@@ -181,30 +178,24 @@ export class StableAssetRx {
       console.log("dy: " + dy);
       if (dy.isLessThan(new BigNumber(0))) {
         return new StableSwapResult(
-          poolId,
-          inputIndex,
-          outputIndex,
-          new TokenBalance(inputToken, inputAmount),
-          new TokenBalance(outputToken, new FixedPointNumber(0)),
-          new FixedPointNumber(0)
+          swapParamters,
+          new BigNumber(0),
+          new BigNumber(0)
         );
       }
       return new StableSwapResult(
-        poolId,
-        inputIndex,
-        outputIndex,
-        new TokenBalance(inputToken, inputAmount),
-        new TokenBalance(outputToken, FixedPointNumber._fromBN(dy, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[inputIndex].toNumber()))),
-        FixedPointNumber._fromBN(feeAmount, inputAmount.getPrecision() + Math.log10(poolInfo.precisions[inputIndex].toNumber()))
+        swapParamters,
+        dy,
+        feeAmount
       );
     }));
   }
 
-  public swap(poolId: number, input: number, output: number, inputAmount: FixedPointNumber, minOutput: FixedPointNumber) {
-    return this.api.tx.stableAsset.swap(poolId, input, output, inputAmount, minOutput);
-  }
-
-  public getMintAmount(poolId: number, inputs: FixedPointNumber[], slippage: number): Observable<StableMintResult> {
+  public getMintAmount(poolId: number, inputAmounts: BigNumber[]): Observable<StableMintResult> {
+    const mintParameters = {
+      poolId,
+      inputAmounts
+    };
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
@@ -212,11 +203,11 @@ export class StableAssetRx {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
 
       for (let i = 0; i < balances.length; i++) {
-        if (inputs[i].isZero()) {
+        if (inputAmounts[i].isZero()) {
           continue;
         }
         // balance = balance + amount * precision
-        balances[i] = balances[i].plus(inputs[i]._getInner().times(poolInfo.precisions[i]));
+        balances[i] = balances[i].plus(inputAmounts[i].times(poolInfo.precisions[i]));
       }
       let newD: BigNumber = this.getD(balances, a);
       // newD should be bigger than or equal to oldD
@@ -227,18 +218,12 @@ export class StableAssetRx {
         feeAmount = mintAmount.times(poolInfo.mintFee).div(feeDenominator);
         mintAmount = mintAmount.minus(feeAmount);
       }
-      let slippagePercent = new BigNumber(1 - slippage);
       return new StableMintResult(
-        poolId,
-        inputs,
-        FixedPointNumber._fromBN(mintAmount.times(slippagePercent)),
-        FixedPointNumber._fromBN(feeAmount)
-        );
+        mintParameters,
+        mintAmount,
+        feeAmount
+      );
     }));
 
-  }
-
-  public mint(poolId: number, inputAmounts: FixedPointNumber[], minMintAmount: FixedPointNumber) {
-    return this.api.tx.stableAsset.mint(poolId, inputAmounts, minMintAmount);
   }
 }

@@ -1,22 +1,27 @@
-import { FixedPointNumber, TokenBalance } from '@acala-network/sdk-core';
+import BigNumber from "bignumber.js";
+
+export interface StableSwapParameters {
+  poolId: number;
+  inputIndex: number;
+  outputIndex: number;
+  inputAmount: BigNumber;
+}
 
 export class StableSwapResult {
   public poolId: number;
   public inputIndex: number;
   public outputIndex: number;
-  public input: TokenBalance;
-  public output: TokenBalance;
-  public exchangeFee: FixedPointNumber;
-  public exchangeRate: FixedPointNumber;
+  public inputAmount: BigNumber;
+  public outputAmount: BigNumber;
+  public feeAmount: BigNumber;
 
-  constructor(poolId: number, inputIndex: number, outputIndex: number, input: TokenBalance, output: TokenBalance, feeAmount: FixedPointNumber) {
-    this.poolId = poolId;
-    this.inputIndex = inputIndex;
-    this.outputIndex = outputIndex;
-    this.input = input;
-    this.output = output;
-    this.exchangeFee = feeAmount;
-    this.exchangeRate = output.balance.div(input.balance);
+  constructor(params: StableSwapParameters, outputAmount: BigNumber, feeAmount: BigNumber) {
+    this.poolId = params.poolId;
+    this.inputIndex = params.inputIndex;
+    this.outputIndex = params.outputIndex;
+    this.inputAmount = params.inputAmount;
+    this.outputAmount = outputAmount;
+    this.feeAmount = feeAmount;
   }
 
   public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minOutput: string] {
@@ -24,8 +29,8 @@ export class StableSwapResult {
         this.poolId,
         this.inputIndex,
         this.outputIndex,
-        this.input.balance.toChainData(),
-        this.output.balance.toChainData()
+        this.inputAmount.toString(),
+        this.outputAmount.toString()
     ];
   }
 }
