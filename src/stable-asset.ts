@@ -221,7 +221,7 @@ export class StableAssetRx {
   }
 
   public getMintAmount(poolId: number, inputTokens: Token[], inputAmounts: FixedPointNumber[],
-      liquidAssetExchangeRate: FixedPointNumber): Observable<StableMintResult> {
+      liquidAssetExchangeRate: FixedPointNumber, slippage: number): Observable<StableMintResult> {
     const inputs: FixedPointNumber[] = [];
     const chain = this.api.runtimeChain.toString();
     for (let i = 0; i < inputTokens.length; i++) {
@@ -252,12 +252,14 @@ export class StableAssetRx {
 
       const mintAmount = FixedPointNumber._fromBN(output, poolInfo.precision.toNumber());
       const feeAmount = FixedPointNumber._fromBN(fee, poolInfo.precision.toNumber());
+      const minMintAmount = mintAmount.times(new FixedPointNumber(1 - slippage));
       return new StableMintResult({
           poolId,
           inputAmounts: inputs
         },
         mintAmount,
-        feeAmount
+        feeAmount,
+        minMintAmount
       );
     }));
 
