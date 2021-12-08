@@ -23,7 +23,6 @@ export interface PoolInfo {
   a: BigNumber,
   balances: BigNumber[],
   feeRecipient: AccountId,
-  precision: BigNumber
 }
 
 export type LiquidAssetConfig = {
@@ -76,7 +75,6 @@ export class StableAssetRx {
         a: new BigNumber(poolInfo.a.toString()),
         balances: this.convertToFixPointNumber(poolInfo.balances),
         feeRecipient: poolInfo.feeRecipient,
-        precision: new BigNumber(poolInfo.precision.toString())
       }
     }));
   }
@@ -250,8 +248,8 @@ export class StableAssetRx {
         output = output.minus(fee);
       }
 
-      const mintAmount = FixedPointNumber._fromBN(output, poolInfo.precision.toNumber());
-      const feeAmount = FixedPointNumber._fromBN(fee, poolInfo.precision.toNumber());
+      const mintAmount = FixedPointNumber._fromBN(output);
+      const feeAmount = FixedPointNumber._fromBN(fee);
       const minMintAmount = mintAmount.times(new FixedPointNumber(1 - slippage));
       return new StableMintResult({
           poolId,
