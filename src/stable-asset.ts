@@ -22,7 +22,8 @@ export interface PoolInfo {
   totalSupply: BigNumber,
   a: BigNumber,
   balances: BigNumber[],
-  feeRecipient: AccountId
+  feeRecipient: AccountId,
+  precision: BigNumber
 }
 
 export type LiquidAssetConfig = {
@@ -74,7 +75,8 @@ export class StableAssetRx {
         totalSupply: new BigNumber(poolInfo.totalSupply.toString()),
         a: new BigNumber(poolInfo.a.toString()),
         balances: this.convertToFixPointNumber(poolInfo.balances),
-        feeRecipient: poolInfo.feeRecipient
+        feeRecipient: poolInfo.feeRecipient,
+        precision: new BigNumber(poolInfo.precision.toString())
       }
     }));
   }
@@ -167,13 +169,14 @@ export class StableAssetRx {
 
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
       inputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
-      let feeDenominator: BigNumber = new BigNumber("10000000000");
-      let chain = this.api.runtimeChain.toString();
-      if (inputToken.name === LIQUID_ASSET[chain]) {
-        inputAmount = inputAmount.div(liquidAssetExchangeRate);
-      }
 
+    let feeDenominator: BigNumber = new BigNumber("10000000000");
+    let chain = this.api.runtimeChain.toString();
+    if (inputToken.name === LIQUID_ASSET[chain]) {
+      inputAmount = inputAmount.div(liquidAssetExchangeRate);
+    }
+
+    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
@@ -217,11 +220,14 @@ export class StableAssetRx {
     }));
   }
 
-  public getMintAmount(poolId: number, inputAmounts: BigNumber[]): Observable<StableMintResult> {
-    const mintParameters = {
-      poolId,
-      inputAmounts
-    };
+  public getMintAmount(poolId: number, inputTokens: Token[], inputAmounts: FixedPointNumber[],
+      liquidAssetExchangeRate: FixedPointNumber): Observable<StableMintResult> {
+    const inputs: FixedPointNumber[] = [];
+    const chain = this.api.runtimeChain.toString();
+    for (let i = 0; i < inputTokens.length; i++) {
+      inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].div(liquidAssetExchangeRate) : inputAmounts[i]);
+    }
+
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
@@ -229,23 +235,27 @@ export class StableAssetRx {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
 
       for (let i = 0; i < balances.length; i++) {
-        if (inputAmounts[i].isZero()) {
+        if (inputs[i].isZero()) {
           continue;
         }
         // balance = balance + amount * precision
-        balances[i] = balances[i].plus(inputAmounts[i].times(poolInfo.precisions[i]));
+        balances[i] = balances[i].plus(inputs[i]._getInner().times(poolInfo.precisions[i]));
       }
       let newD: BigNumber = this.getD(balances, a);
       // newD should be bigger than or equal to oldD
-      let mintAmount: BigNumber = newD.minus(oldD);
-      let feeAmount: BigNumber = new BigNumber(0);
-
+      let output: BigNumber = newD.minus(oldD);
+      let fee: BigNumber = new BigNumber(0);
       if (poolInfo.mintFee.isGreaterThan(new BigNumber(0))) {
-        feeAmount = mintAmount.times(poolInfo.mintFee).idiv(feeDenominator);
-        mintAmount = mintAmount.minus(feeAmount);
+        fee = output.times(poolInfo.mintFee).idiv(feeDenominator);
+        output = output.minus(fee);
       }
-      return new StableMintResult(
-        mintParameters,
+
+      const mintAmount = FixedPointNumber._fromBN(output, poolInfo.precision.toNumber());
+      const feeAmount = FixedPointNumber._fromBN(fee, poolInfo.precision.toNumber());
+      return new StableMintResult({
+          poolId,
+          inputAmounts: inputs
+        },
         mintAmount,
         feeAmount
       );

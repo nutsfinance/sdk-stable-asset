@@ -1,5 +1,4 @@
 import { FixedPointNumber, Token } from '@acala-network/sdk-core';
-import BigNumber from "bignumber.js";
 
 export interface StableSwapParameters {
   poolId: number;
