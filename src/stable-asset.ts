@@ -10,6 +10,7 @@ import { BigNumber } from 'bignumber.js';
 
 import { StableSwapResult } from './stable-swap-result';
 import { StableMintResult } from './stable-mint-result';
+import { StableSwapParameters } from '.';
 
 export interface PoolInfo {
   poolAsset: CurrencyId,
@@ -29,10 +30,10 @@ export type LiquidAssetConfig = {
 };
 
 const LIQUID_ASSET: LiquidAssetConfig = {
-  acala: "LDOT",
-  karura: "LKSM",
-  dev: "LDOT"
-}
+  "Acala": "LDOT",
+  "Karura": "LKSM",
+  "Mandala Dev": "LDOT"
+};
 
 export class StableAssetRx {
   private api: ApiRx;
@@ -166,14 +167,6 @@ export class StableAssetRx {
 
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
       inputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
-    const swapParamters = {
-      poolId,
-      inputIndex,
-      outputIndex,
-      inputToken,
-      outputToken,
-      inputAmount
-    };
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
       let chain = this.api.runtimeChain.toString();
@@ -194,6 +187,14 @@ export class StableAssetRx {
         dy = dy.minus(fee);
       }
       console.log("dy: " + dy);
+      const swapParamters: StableSwapParameters = {
+        poolId,
+        inputIndex,
+        outputIndex,
+        inputToken,
+        outputToken,
+        inputAmount
+      };
       if (dy.isLessThan(new BigNumber(0))) {
         return new StableSwapResult(
           swapParamters,
