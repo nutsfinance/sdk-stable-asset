@@ -95,14 +95,14 @@ export class StableAssetRx {
     for (let i = 0; i < 255; i++) {
       let pD: BigNumber = d;
       for (let j = 0; j < balances.length; j++) {
-        pD = pD.times(d).div(balances[j].times(balanceLength));
+        pD = pD.times(d).idiv(balances[j].times(balanceLength));
       }
       prevD = d;
       d = ann
         .times(sum)
         .plus(pD.times(balanceLength))
         .times(d)
-        .div(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
+        .idiv(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
       if (d.comparedTo(prevD) > 0) {
         if (d.minus(prevD).isLessThanOrEqualTo(one)) {
           break;
@@ -130,16 +130,16 @@ export class StableAssetRx {
         continue;
       }
       sum = sum.plus(balances[i]);
-      c = c.times(d).div(balances[i].times(balanceLength));
+      c = c.times(d).idiv(balances[i].times(balanceLength));
     }
-    c = c.times(d).div(ann.times(balanceLength));
-    let b: BigNumber = sum.plus(d.div(ann));
+    c = c.times(d).idiv(ann.times(balanceLength));
+    let b: BigNumber = sum.plus(d.idiv(ann));
     let prevY: BigNumber = new BigNumber(0);
     let y: BigNumber = d;
 
     for (let i = 0; i < 255; i++) {
       prevY = y;
-      y = y.times(y).plus(c).div(y.times(new BigNumber(2)).plus(b).minus(d));
+      y = y.times(y).plus(c).idiv(y.times(new BigNumber(2)).plus(b).minus(d));
       if (y.comparedTo(prevY) > 0) {
         if (y.minus(prevY).isLessThanOrEqualTo(one)) {
           break;
@@ -171,11 +171,11 @@ export class StableAssetRx {
       let d: BigNumber = poolInfo.totalSupply;
       balances[inputIndex] = balances[inputIndex].plus(inputAmount._getInner().times(poolInfo.precisions[outputIndex]));
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
-      let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).div(poolInfo.precisions[outputIndex]);
+      let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]);
 
       let feeAmount: BigNumber = new BigNumber(0);
       if (poolInfo.swapFee.isGreaterThan(new BigNumber(0))) {
-        feeAmount = dy.times(poolInfo.swapFee).div(feeDenominator);
+        feeAmount = dy.times(poolInfo.swapFee).idiv(feeDenominator);
         dy = dy.minus(feeAmount);
       }
       console.log("dy: " + dy);
@@ -218,7 +218,7 @@ export class StableAssetRx {
       let feeAmount: BigNumber = new BigNumber(0);
 
       if (poolInfo.mintFee.isGreaterThan(new BigNumber(0))) {
-        feeAmount = mintAmount.times(poolInfo.mintFee).div(feeDenominator);
+        feeAmount = mintAmount.times(poolInfo.mintFee).idiv(feeDenominator);
         mintAmount = mintAmount.minus(feeAmount);
       }
       return new StableMintResult(
