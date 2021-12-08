@@ -24,6 +24,16 @@ export interface PoolInfo {
   feeRecipient: AccountId
 }
 
+export type LiquidAssetConfig = {
+  [chain in string]: string;
+};
+
+const LIQUID_ASSET: LiquidAssetConfig = {
+  acala: "LDOT",
+  karura: "LKSM",
+  dev: "LDOT"
+}
+
 export class StableAssetRx {
   private api: ApiRx;
   private pools$ = new BehaviorSubject<PoolInfo[]>([]);
@@ -154,7 +164,8 @@ export class StableAssetRx {
     return y;
   }
 
-  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token, inputAmount: FixedPointNumber): Observable<StableSwapResult> {
+  public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
+      inputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
     const swapParamters = {
       poolId,
       inputIndex,
@@ -165,6 +176,10 @@ export class StableAssetRx {
     };
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let feeDenominator: BigNumber = new BigNumber("10000000000");
+      let chain = this.api.runtimeChain.toString();
+      if (inputToken.name === LIQUID_ASSET[chain]) {
+        inputAmount = inputAmount.div(liquidAssetExchangeRate);
+      }
 
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
@@ -173,10 +188,10 @@ export class StableAssetRx {
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]);
 
-      let feeAmount: BigNumber = new BigNumber(0);
+      let fee: BigNumber = new BigNumber(0);
       if (poolInfo.swapFee.isGreaterThan(new BigNumber(0))) {
-        feeAmount = dy.times(poolInfo.swapFee).idiv(feeDenominator);
-        dy = dy.minus(feeAmount);
+        fee = dy.times(poolInfo.swapFee).idiv(feeDenominator);
+        dy = dy.minus(fee);
       }
       console.log("dy: " + dy);
       if (dy.isLessThan(new BigNumber(0))) {
@@ -186,10 +201,17 @@ export class StableAssetRx {
           new FixedPointNumber(0)
         );
       }
+
+      let outputAmount = FixedPointNumber._fromBN(dy, outputToken.decimal);
+      let feeAmount = FixedPointNumber._fromBN(fee, outputToken.decimal);
+      if (outputToken.name === LIQUID_ASSET[chain]) {
+        outputAmount = outputAmount.mul(liquidAssetExchangeRate);
+        feeAmount = feeAmount.mul(liquidAssetExchangeRate);
+      }
       return new StableSwapResult(
         swapParamters,
-        FixedPointNumber._fromBN(dy, outputToken.decimal),
-        FixedPointNumber._fromBN(feeAmount, outputToken.decimal)
+        outputAmount,
+        feeAmount
       );
     }));
   }
