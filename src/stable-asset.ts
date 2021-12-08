@@ -166,19 +166,16 @@ export class StableAssetRx {
   }
 
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
-      inputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
-
-    let feeDenominator: BigNumber = new BigNumber("10000000000");
-    let chain = this.api.runtimeChain.toString();
-    if (inputToken.name === LIQUID_ASSET[chain]) {
-      inputAmount = inputAmount.div(liquidAssetExchangeRate);
-    }
+      inputAmount: FixedPointNumber, slippage: number, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
 
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
-      balances[inputIndex] = balances[inputIndex].plus(inputAmount._getInner().times(poolInfo.precisions[outputIndex]));
+      let feeDenominator: BigNumber = new BigNumber("10000000000");
+      let chain = this.api.runtimeChain.toString();
+      let input = inputToken.name === LIQUID_ASSET[chain] ? inputAmount.div(liquidAssetExchangeRate) : inputAmount;
+      balances[inputIndex] = balances[inputIndex].plus(input._getInner().times(poolInfo.precisions[outputIndex]));
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]);
 
@@ -200,7 +197,10 @@ export class StableAssetRx {
         return new StableSwapResult(
           swapParamters,
           new FixedPointNumber(0),
-          new FixedPointNumber(0)
+          new FixedPointNumber(0),
+          slippage,
+          LIQUID_ASSET[chain],
+          liquidAssetExchangeRate
         );
       }
 
@@ -213,7 +213,10 @@ export class StableAssetRx {
       return new StableSwapResult(
         swapParamters,
         outputAmount,
-        feeAmount
+        feeAmount,
+        slippage,
+        LIQUID_ASSET[chain],
+        liquidAssetExchangeRate
       );
     }));
   }

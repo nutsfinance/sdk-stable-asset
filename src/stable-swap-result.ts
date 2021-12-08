@@ -10,6 +10,7 @@ export interface StableSwapParameters {
 }
 
 export class StableSwapResult {
+  // Display values
   public poolId: number;
   public inputIndex: number;
   public outputIndex: number;
@@ -18,8 +19,12 @@ export class StableSwapResult {
   public inputAmount: FixedPointNumber;
   public outputAmount: FixedPointNumber;
   public feeAmount: FixedPointNumber;
+  public slippage: number;
+  public liquidAsset: string;
+  public liquidExchangeRate: FixedPointNumber;
 
-  constructor(params: StableSwapParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber) {
+  constructor(params: StableSwapParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
+      slippage: number, liquidAsset: string, liquidExchangeRate: FixedPointNumber) {
     this.poolId = params.poolId;
     this.inputIndex = params.inputIndex;
     this.outputIndex = params.outputIndex;
@@ -28,15 +33,21 @@ export class StableSwapResult {
     this.inputAmount = params.inputAmount;
     this.outputAmount = outputAmount;
     this.feeAmount = feeAmount;
+    this.slippage = slippage;
+    this.liquidAsset = liquidAsset;
+    this.liquidExchangeRate = liquidExchangeRate;
   }
 
-  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, outputAmount: string] {
+  // Convert to actual value sent to chain
+  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minMintAmount: string] {
+    let input = this.inputToken.name === this.liquidAsset ? this.inputAmount.div(this.liquidExchangeRate) : this.inputAmount;
+    let output = this.outputToken.name === this.liquidAsset ? this.outputAmount.div(this.liquidExchangeRate) : this.outputAmount;
     return [
         this.poolId,
         this.inputIndex,
         this.outputIndex,
-        this.inputAmount.toChainData(),
-        this.outputAmount.toChainData()
+        input.toChainData(),
+        output.mul(new FixedPointNumber(1 - this.slippage)).toChainData()
     ];
   }
 }
