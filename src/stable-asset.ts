@@ -23,6 +23,7 @@ export interface PoolInfo {
   a: BigNumber,
   balances: BigNumber[],
   feeRecipient: AccountId,
+  precision: number,
 }
 
 export type LiquidAssetConfig = {
@@ -75,6 +76,7 @@ export class StableAssetRx {
         a: new BigNumber(poolInfo.a.toString()),
         balances: this.convertToFixPointNumber(poolInfo.balances),
         feeRecipient: poolInfo.feeRecipient,
+        precision: poolInfo.precision.toNumber(),
       }
     }));
   }
@@ -222,11 +224,11 @@ export class StableAssetRx {
   }
 
   public getMintAmount(poolId: number, inputTokens: Token[], inputAmounts: FixedPointNumber[],
-      liquidAssetExchangeRate: FixedPointNumber, slippage: number): Observable<StableMintResult> {
+      slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableMintResult> {
     const inputs: FixedPointNumber[] = [];
     const chain = this.api.runtimeChain.toString();
     for (let i = 0; i < inputTokens.length; i++) {
-      inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].div(liquidAssetExchangeRate) : inputAmounts[i]);
+      inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].div(liquidExchangeRate) : inputAmounts[i]);
     }
 
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
@@ -251,16 +253,18 @@ export class StableAssetRx {
         output = output.minus(fee);
       }
 
-      const mintAmount = FixedPointNumber._fromBN(output);
-      const feeAmount = FixedPointNumber._fromBN(fee);
-      const minMintAmount = mintAmount.times(new FixedPointNumber(1 - slippage));
+      const mintAmount = FixedPointNumber._fromBN(output, Math.log10(poolInfo.precision));
+      const feeAmount = FixedPointNumber._fromBN(fee, Math.log10(poolInfo.precision));
       return new StableMintResult({
           poolId,
-          inputAmounts: inputs
+          inputTokens,
+          inputAmounts
         },
         mintAmount,
         feeAmount,
-        minMintAmount
+        slippage,
+        LIQUID_ASSET[chain],
+        liquidExchangeRate
       );
     }));
 
