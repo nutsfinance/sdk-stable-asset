@@ -29,6 +29,10 @@ export class StableMintResult {
     this.liquidExchangeRate = liquidExchangeRate;
   }
 
+  public getMinMintAmount(): FixedPointNumber {
+    return this.outputAmount.mul(new FixedPointNumber(1 - this.slippage));
+  }
+
   // Convert to actual value sent on chain
   public toChainData(): [poolId: number, inputAmounts: string[], minMintAmount: string] {
     const inputs: FixedPointNumber[] = [];
@@ -38,7 +42,7 @@ export class StableMintResult {
     return [
         this.poolId,
         inputs.map(input => input.toChainData()),
-        this.outputAmount.mul(new FixedPointNumber(1 - this.slippage)).toChainData()
+        this.getMinMintAmount().toChainData()
     ];
   }
 }
