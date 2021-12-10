@@ -1,12 +1,12 @@
 import { FixedPointNumber, Token } from '@acala-network/sdk-core';
 
-export interface StableRedeemParameters {
+export interface StableRedeemProportionParameters {
     poolId: number;
     inputAmount: FixedPointNumber;
     outputTokens: Token[];
 }
 
-export class StableRedeemResult {
+export class StableRedeemProportionResult {
     // Display values
     public poolId: number;
     public inputAmount: FixedPointNumber;
@@ -17,7 +17,7 @@ export class StableRedeemResult {
     public liquidAsset: string;
     public liquidExchangeRate: FixedPointNumber;
 
-    constructor(params: StableRedeemParameters, outputAmounts: FixedPointNumber[], feeAmount: FixedPointNumber,
+    constructor(params: StableRedeemProportionParameters, outputAmounts: FixedPointNumber[], feeAmount: FixedPointNumber,
         slippage: number, liquidAsset: string, liquidExchangeRate: FixedPointNumber) {
         this.poolId = params.poolId;
         this.inputAmount = params.inputAmount;

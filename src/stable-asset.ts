@@ -11,7 +11,7 @@ import { BigNumber } from 'bignumber.js';
 import { StableSwapResult } from './stable-swap-result';
 import { StableMintResult } from './stable-mint-result';
 import { StableSwapParameters } from '.';
-import { StableRedeemResult } from './stable-redeem-result';
+import { StableRedeemProportionResult } from './stable-redeem-proportion-result';
 
 export interface PoolInfo {
   poolAsset: CurrencyId,
@@ -270,7 +270,7 @@ export class StableAssetRx {
     }));
   }
 
-  public getRedeemAmount(poolId: number, inputAmount: FixedPointNumber, outputTokens: Token[],
-    slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableRedeemResult> {
+  public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, outputTokens: Token[],
+    slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableRedeemProportionResult> {
   }
 }
