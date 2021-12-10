@@ -30,7 +30,7 @@ export type LiquidAssetConfig = {
   [chain in string]: string;
 };
 
-const LIQUID_ASSET: LiquidAssetConfig = {
+export const LIQUID_ASSET: LiquidAssetConfig = {
   "Acala": "LDOT",
   "Karura": "LKSM",
   "Mandala Dev": "LDOT"
