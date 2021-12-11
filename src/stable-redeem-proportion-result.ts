@@ -32,7 +32,7 @@ export class StableRedeemProportionResult {
     public getMinOutputAmount(): FixedPointNumber[] {
         const outputs: FixedPointNumber[] = [];
         for (let i = 0; i < this.outputTokens.length; i++) {
-            outputs.push(this.outputTokens[i].name === this.liquidAsset ? this.outputAmounts[i].div(this.liquidExchangeRate) : this.outputAmounts[i]);
+            outputs.push(this.outputTokens[i].name === this.liquidAsset ? this.outputAmounts[i].mul(this.liquidExchangeRate) : this.outputAmounts[i]);
         }
 
         return outputs.map(output => output.mul(new FixedPointNumber(1 - this.slippage)));
