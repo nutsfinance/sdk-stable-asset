@@ -37,6 +37,8 @@ export const LIQUID_ASSET: LiquidAssetConfig = {
   "Mandala Dev": "LDOT"
 };
 
+const FEE_DENOMINATOR: BigNumber = new BigNumber("10000000000");
+
 export class StableAssetRx {
   private api: ApiRx;
   private pools$ = new BehaviorSubject<PoolInfo[]>([]);
@@ -175,7 +177,7 @@ export class StableAssetRx {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
-      let feeDenominator: BigNumber = new BigNumber("10000000000");
+
       let chain = this.api.runtimeChain.toString();
       let input = inputToken.name === LIQUID_ASSET[chain] ? inputAmount.div(liquidAssetExchangeRate) : inputAmount;
       balances[inputIndex] = balances[inputIndex].plus(input._getInner().times(poolInfo.precisions[outputIndex]));
@@ -184,7 +186,7 @@ export class StableAssetRx {
 
       let fee: BigNumber = new BigNumber(0);
       if (poolInfo.swapFee.isGreaterThan(new BigNumber(0))) {
-        fee = dy.times(poolInfo.swapFee).idiv(feeDenominator);
+        fee = dy.times(poolInfo.swapFee).idiv(FEE_DENOMINATOR);
         dy = dy.minus(fee);
       }
       console.log("dy: " + dy);
@@ -236,7 +238,6 @@ export class StableAssetRx {
       let balances: BigNumber[] = poolInfo.balances;
       let a: BigNumber = poolInfo.a;
       let oldD: BigNumber = poolInfo.totalSupply;
-      let feeDenominator: BigNumber = new BigNumber("10000000000");
 
       for (let i = 0; i < balances.length; i++) {
         if (inputs[i].isZero()) {
@@ -250,7 +251,7 @@ export class StableAssetRx {
       let output: BigNumber = newD.minus(oldD);
       let fee: BigNumber = new BigNumber(0);
       if (poolInfo.mintFee.isGreaterThan(new BigNumber(0))) {
-        fee = output.times(poolInfo.mintFee).idiv(feeDenominator);
+        fee = output.times(poolInfo.mintFee).idiv(FEE_DENOMINATOR);
         output = output.minus(fee);
       }
 
@@ -272,5 +273,31 @@ export class StableAssetRx {
 
   public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, outputTokens: Token[],
     slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableRedeemProportionResult> {
+      // TODO Total supply should consider yield
+    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+      const chain = this.api.runtimeChain.toString();
+      let balances: BigNumber[] = poolInfo.balances;
+      let totalSupply: BigNumber = poolInfo.totalSupply;
+      let feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
+      let actualInputAmount = inputAmount._getInner().minus(feeAmount);
+
+      let outputAmounts: FixedPointNumber[] = [];
+      for (let i = 0; i < balances.length; i++) {
+        const outputAmount = balances[i].multipliedBy(actualInputAmount).div(totalSupply);
+        outputAmounts.push(FixedPointNumber._fromBN(outputAmount, outputTokens[i].decimal));
+      }
+
+      return new StableRedeemProportionResult({
+          poolId,
+          inputAmount,
+          outputTokens
+        },
+        outputAmounts,
+        FixedPointNumber._fromBN(feeAmount, poolInfo.precision),
+        slippage,
+        LIQUID_ASSET[chain],
+        liquidExchangeRate
+      );
+    }));
   }
 }
