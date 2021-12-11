@@ -42,7 +42,7 @@ export class StableRedeemProportionResult {
         return [
             this.poolId,
             this.inputAmount.toChainData(),
-            this.getMinOutputAmount().map(amount => amount.toChainData())
+            this.outputAmounts.map(amount => amount.toChainData())
         ];
     }
 }
