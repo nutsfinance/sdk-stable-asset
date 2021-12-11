@@ -38,6 +38,7 @@ export const LIQUID_ASSET: LiquidAssetConfig = {
 };
 
 const FEE_DENOMINATOR: BigNumber = new BigNumber("10000000000");
+const A_PRECISION: BigNumber = new BigNumber("100");
 
 export class StableAssetRx {
   private api: ApiRx;
@@ -116,9 +117,10 @@ export class StableAssetRx {
       prevD = d;
       d = ann
         .times(sum)
+        .idiv(A_PRECISION)
         .plus(pD.times(balanceLength))
         .times(d)
-        .idiv(ann.minus(one).times(d).plus(balanceLength.plus(one).times(pD)));
+        .idiv(ann.minus(A_PRECISION).times(d).idiv(A_PRECISION).plus(balanceLength.plus(one).times(pD)));
       if (d.comparedTo(prevD) > 0) {
         if (d.minus(prevD).isLessThanOrEqualTo(one)) {
           break;
@@ -148,8 +150,8 @@ export class StableAssetRx {
       sum = sum.plus(balances[i]);
       c = c.times(d).idiv(balances[i].times(balanceLength));
     }
-    c = c.times(d).idiv(ann.times(balanceLength));
-    let b: BigNumber = sum.plus(d.idiv(ann));
+    c = c.times(d).times(A_PRECISION).idiv(ann.times(balanceLength));
+    let b: BigNumber = sum.plus(d.times(A_PRECISION).idiv(ann));
     let prevY: BigNumber = new BigNumber(0);
     let y: BigNumber = d;
 
@@ -189,7 +191,6 @@ export class StableAssetRx {
         fee = dy.times(poolInfo.swapFee).idiv(FEE_DENOMINATOR);
         dy = dy.minus(fee);
       }
-      console.log("dy: " + dy);
       const swapParamters: StableSwapParameters = {
         poolId,
         inputIndex,
@@ -283,7 +284,12 @@ export class StableAssetRx {
 
       let outputAmounts: FixedPointNumber[] = [];
       for (let i = 0; i < balances.length; i++) {
-        const outputAmount = balances[i].multipliedBy(actualInputAmount).div(totalSupply);
+        let currency = poolInfo.assets[i];
+        let ratio = new BigNumber(1);
+        if (currency.toString().includes(LIQUID_ASSET[chain])) {
+          ratio = new BigNumber(liquidExchangeRate.toNumber());
+        }
+        const outputAmount = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply).idiv(ratio);
         outputAmounts.push(FixedPointNumber._fromBN(outputAmount, outputTokens[i].decimal));
       }
 
