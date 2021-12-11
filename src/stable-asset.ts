@@ -284,12 +284,7 @@ export class StableAssetRx {
 
       let outputAmounts: FixedPointNumber[] = [];
       for (let i = 0; i < balances.length; i++) {
-        let currency = poolInfo.assets[i];
-        let ratio = new BigNumber(1);
-        if (currency.toString().includes(LIQUID_ASSET[chain])) {
-          ratio = new BigNumber(liquidExchangeRate.toNumber());
-        }
-        const outputAmount = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply).idiv(ratio);
+        const outputAmount = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply);
         outputAmounts.push(FixedPointNumber._fromBN(outputAmount, outputTokens[i].decimal));
       }
 
