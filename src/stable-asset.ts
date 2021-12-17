@@ -34,6 +34,7 @@ export type LiquidAssetConfig = {
 export const LIQUID_ASSET: LiquidAssetConfig = {
   "Acala": "LDOT",
   "Karura": "LKSM",
+  "Acala Karura Dev": "LKSM",
   "Mandala Dev": "LDOT"
 };
 
