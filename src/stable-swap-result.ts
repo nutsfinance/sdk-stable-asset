@@ -20,11 +20,12 @@ export class StableSwapResult {
   public outputAmount: FixedPointNumber;
   public feeAmount: FixedPointNumber;
   public slippage: number;
+  public assetCount: number;
   public liquidAsset: string;
   public liquidExchangeRate: FixedPointNumber;
 
   constructor(params: StableSwapParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
-      slippage: number, liquidAsset: string, liquidExchangeRate: FixedPointNumber) {
+      slippage: number, assetCount: number, liquidAsset: string, liquidExchangeRate: FixedPointNumber) {
     this.poolId = params.poolId;
     this.inputIndex = params.inputIndex;
     this.outputIndex = params.outputIndex;
@@ -33,13 +34,14 @@ export class StableSwapResult {
     this.inputAmount = params.inputAmount;
     this.outputAmount = outputAmount;
     this.feeAmount = feeAmount;
+    this.assetCount = assetCount;
     this.slippage = slippage;
     this.liquidAsset = liquidAsset;
     this.liquidExchangeRate = liquidExchangeRate;
   }
 
   // Convert to actual value sent to chain
-  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minMintAmount: string] {
+  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minMintAmount: string, assetLength: number] {
     let input = this.inputToken.name === this.liquidAsset ? this.inputAmount.div(this.liquidExchangeRate) : this.inputAmount;
     let output = this.outputToken.name === this.liquidAsset ? this.outputAmount.div(this.liquidExchangeRate) : this.outputAmount;
     return [
@@ -47,7 +49,8 @@ export class StableSwapResult {
         this.inputIndex,
         this.outputIndex,
         input.toChainData(),
-        output.mul(new FixedPointNumber(1 - this.slippage)).toChainData()
+        output.mul(new FixedPointNumber(1 - this.slippage)).toChainData(),
+        this.assetCount
     ];
   }
 }

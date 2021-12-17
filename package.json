@@ -1,6 +1,6 @@
 {
   "name": "@nuts-finance/sdk-stable-asset",
-  "version": "1.0.36",
+  "version": "1.0.37",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,12 +20,12 @@
   },
   "homepage": "https://github.com/nutsfinance/sdk-stable-asset#readme",
   "dependencies": {
-    "@acala-network/sdk-core": "3.0.3-3",
+    "@acala-network/sdk-core": "3.0.3-12",
     "@polkadot/api": "^6.5.2",
     "@polkadot/types": "^6.5.2",
+    "bignumber.js": "^9.0.0",
     "lodash": "^4.17.20",
-    "rxjs": "^7.4.0",
-    "bignumber.js": "^9.0.0"
+    "rxjs": "^7.4.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.161"

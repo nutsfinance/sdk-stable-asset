@@ -206,6 +206,7 @@ export class StableAssetRx {
           new FixedPointNumber(0),
           new FixedPointNumber(0),
           slippage,
+          poolInfo.assets.length,
           LIQUID_ASSET[chain],
           liquidAssetExchangeRate
         );
@@ -222,6 +223,7 @@ export class StableAssetRx {
         outputAmount,
         feeAmount,
         slippage,
+        poolInfo.assets.length,
         LIQUID_ASSET[chain],
         liquidAssetExchangeRate
       );
