@@ -35,7 +35,8 @@ export const LIQUID_ASSET: LiquidAssetConfig = {
   "Acala": "LDOT",
   "Karura": "LKSM",
   "Acala Karura Dev": "LKSM",
-  "Mandala Dev": "LDOT"
+  "Mandala Dev": "LDOT",
+  "Acala Mandala TC7": "LKSM"
 };
 
 const FEE_DENOMINATOR: BigNumber = new BigNumber("10000000000");
