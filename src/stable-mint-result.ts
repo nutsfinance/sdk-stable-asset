@@ -37,7 +37,7 @@ export class StableMintResult {
   public toChainData(): [poolId: number, inputAmounts: string[], minMintAmount: string] {
     const inputs: FixedPointNumber[] = [];
     for (let i = 0; i < this.inputTokens.length; i++) {
-      inputs.push(this.inputTokens[i].name === this.liquidAsset ? this.inputAmounts[i].div(this.liquidExchangeRate) : this.inputAmounts[i]);
+      inputs.push(this.inputTokens[i].name === this.liquidAsset ? this.inputAmounts[i].mul(this.liquidExchangeRate) : this.inputAmounts[i]);
     }
     return [
         this.poolId,

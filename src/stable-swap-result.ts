@@ -42,8 +42,8 @@ export class StableSwapResult {
 
   // Convert to actual value sent to chain
   public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minMintAmount: string, assetLength: number] {
-    let input = this.inputToken.name === this.liquidAsset ? this.inputAmount.div(this.liquidExchangeRate) : this.inputAmount;
-    let output = this.outputToken.name === this.liquidAsset ? this.outputAmount.div(this.liquidExchangeRate) : this.outputAmount;
+    let input = this.inputToken.name === this.liquidAsset ? this.inputAmount.mul(this.liquidExchangeRate) : this.inputAmount;
+    let output = this.outputToken.name === this.liquidAsset ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
     return [
         this.poolId,
         this.inputIndex,

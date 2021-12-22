@@ -183,7 +183,7 @@ export class StableAssetRx {
       let d: BigNumber = poolInfo.totalSupply;
 
       let chain = this.api.runtimeChain.toString();
-      let input = inputToken.name === LIQUID_ASSET[chain] ? inputAmount.div(liquidAssetExchangeRate) : inputAmount;
+      let input = inputToken.name === LIQUID_ASSET[chain] ? inputAmount.mul(liquidAssetExchangeRate) : inputAmount;
       balances[inputIndex] = balances[inputIndex].plus(input._getInner().times(poolInfo.precisions[outputIndex]));
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]);
@@ -216,8 +216,8 @@ export class StableAssetRx {
       let outputAmount = FixedPointNumber._fromBN(dy, outputToken.decimal);
       let feeAmount = FixedPointNumber._fromBN(fee, outputToken.decimal);
       if (outputToken.name === LIQUID_ASSET[chain]) {
-        outputAmount = outputAmount.mul(liquidAssetExchangeRate);
-        feeAmount = feeAmount.mul(liquidAssetExchangeRate);
+        outputAmount = outputAmount.div(liquidAssetExchangeRate);
+        feeAmount = feeAmount.div(liquidAssetExchangeRate);
       }
       return new StableSwapResult(
         swapParamters,
@@ -236,7 +236,7 @@ export class StableAssetRx {
     const inputs: FixedPointNumber[] = [];
     const chain = this.api.runtimeChain.toString();
     for (let i = 0; i < inputTokens.length; i++) {
-      inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].div(liquidExchangeRate) : inputAmounts[i]);
+      inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
     }
 
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
