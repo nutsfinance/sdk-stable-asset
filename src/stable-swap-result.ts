@@ -40,7 +40,12 @@ export class StableSwapResult {
     this.liquidExchangeRate = liquidExchangeRate;
   }
 
-  // Convert to actual value sent to chain
+  // Minimum output amount is in actual token amount
+  public getMinOutputAmount(): FixedPointNumber {
+    return this.outputAmount.mul(new FixedPointNumber(1 - this.slippage));
+  }
+
+  // Convert to underlying value sent to chain
   public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minMintAmount: string, assetLength: number] {
     let input = this.inputToken.name === this.liquidAsset ? this.inputAmount.mul(this.liquidExchangeRate) : this.inputAmount;
     let output = this.outputToken.name === this.liquidAsset ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;

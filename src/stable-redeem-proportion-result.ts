@@ -29,20 +29,23 @@ export class StableRedeemProportionResult {
         this.liquidExchangeRate = liquidExchangeRate;
     }
 
-    public getMinOutputAmount(): FixedPointNumber[] {
-        const outputs: FixedPointNumber[] = [];
-        for (let i = 0; i < this.outputTokens.length; i++) {
-            outputs.push(this.outputTokens[i].name === this.liquidAsset ? this.outputAmounts[i].div(this.liquidExchangeRate) : this.outputAmounts[i]);
-        }
-
-        return outputs.map(output => output.mul(new FixedPointNumber(1 - this.slippage)));
+    // Minimum output amounts are based on actual token amounts
+    public getMinOutputAmounts(): FixedPointNumber[] {
+        return this.outputAmounts.map(output => output.mul(new FixedPointNumber(1 - this.slippage)));
     }
 
+    // Convert to underlying token amount before sending on chain
     public toChainData(): [poolId: number, inputAmount: string, minOutputAmounts: string[]] {
+        const minOutputAmounts = [];
+        for (let i = 0; i < this.outputTokens.length; i++) {
+            const outputAmount = this.outputTokens[i].name === this.liquidAsset ? this.outputAmounts[i].mul(this.liquidExchangeRate) : this.outputAmounts[i];
+            minOutputAmounts.push(outputAmount.mul(new FixedPointNumber(1 - this.slippage)));
+        }
+
         return [
             this.poolId,
             this.inputAmount.toChainData(),
-            this.outputAmounts.map(amount => amount.toChainData())
+            minOutputAmounts.map(amount => amount.toChainData())
         ];
     }
 }

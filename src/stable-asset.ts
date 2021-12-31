@@ -328,8 +328,12 @@ export class StableAssetRx {
 
       let outputAmounts: FixedPointNumber[] = [];
       for (let i = 0; i < balances.length; i++) {
-        const outputAmount = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply);
-        outputAmounts.push(FixedPointNumber._fromBN(outputAmount, outputTokens[i].decimal));
+        const output = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply);
+        let outputAmount = FixedPointNumber._fromBN(output, outputTokens[i].decimal);
+        if (outputTokens[i].name === LIQUID_ASSET[chain]) {
+          outputAmount = outputAmount.div(liquidExchangeRate);
+        }
+        outputAmounts.push(outputAmount);
       }
 
       return new StableRedeemProportionResult({
