@@ -24,8 +24,15 @@ export interface PoolInfo {
   a: BigNumber,
   balances: BigNumber[],
   feeRecipient: AccountId,
+  accountId: AccountId,
   precision: number,
 }
+
+interface BalanceWrap {
+  poolInfo: PoolInfo,
+  balance: BigNumber
+}
+
 
 export type LiquidAssetConfig = {
   [chain in string]: string;
@@ -82,6 +89,7 @@ export class StableAssetRx {
         a: new BigNumber(poolInfo.a.toString()),
         balances: this.convertToFixPointNumber(poolInfo.balances),
         feeRecipient: poolInfo.feeRecipient,
+        accountId: poolInfo.accountId,
         precision: poolInfo.precision.toNumber(),
       }
     }));
@@ -174,11 +182,36 @@ export class StableAssetRx {
     return y;
   }
 
+  private getBalances(poolInfo: PoolInfo, liquidAssetExchangeRate: FixedPointNumber): Observable<BalanceWrap>[] {
+    return poolInfo.assets.map(asset => {
+      let chain = this.api.runtimeChain.toString();
+      let name = "";
+      if (asset.type == 'Token') {
+        name = asset.asToken.type;
+      }
+      return this.api.query.tokens.accounts(poolInfo.accountId, asset)
+        .pipe(map(value => {
+          let tmp: any = value;
+          let balance = new BigNumber(tmp.free, 16);
+          if (name === LIQUID_ASSET[chain]) {
+            balance = balance.times(liquidAssetExchangeRate._getInner()).idiv(new BigNumber(10).pow(liquidAssetExchangeRate.getPrecision()));
+          }
+          return {
+            poolInfo: poolInfo,
+            balance: balance
+          };
+        }));
+    });
+  }
+
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
       inputAmount: FixedPointNumber, slippage: number, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
-
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
-      let balances: BigNumber[] = poolInfo.balances;
+    let balanceObservable = this.getPoolInfo(poolId).pipe(mergeMap(poolInfo => {
+      return combineLatest(this.getBalances(poolInfo, liquidAssetExchangeRate));
+    }));
+    return balanceObservable.pipe(map((balancesWithPoolInfo) => {
+      let poolInfo = balancesWithPoolInfo[0].poolInfo;
+      let balances: BigNumber[] = balancesWithPoolInfo.map(t => t.balance);
       let a: BigNumber = poolInfo.a;
       let d: BigNumber = poolInfo.totalSupply;
 
@@ -238,9 +271,12 @@ export class StableAssetRx {
     for (let i = 0; i < inputTokens.length; i++) {
       inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
     }
-
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
-      let balances: BigNumber[] = poolInfo.balances;
+    let balanceObservable = this.getPoolInfo(poolId).pipe(mergeMap(poolInfo => {
+      return combineLatest(this.getBalances(poolInfo, liquidExchangeRate));
+    }));
+    return balanceObservable.pipe(map(balancesWithPoolInfo => {
+      let poolInfo = balancesWithPoolInfo[0].poolInfo;
+      let balances: BigNumber[] = balancesWithPoolInfo.map(t => t.balance);
       let a: BigNumber = poolInfo.a;
       let oldD: BigNumber = poolInfo.totalSupply;
 
@@ -279,9 +315,13 @@ export class StableAssetRx {
   public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, outputTokens: Token[],
     slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableRedeemProportionResult> {
       // TODO Total supply should consider yield
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+    let balanceObservable = this.getPoolInfo(poolId).pipe(mergeMap(poolInfo => {
+      return combineLatest(this.getBalances(poolInfo, liquidExchangeRate));
+    }));
+    return balanceObservable.pipe(map((balancesWithPoolInfo) => {
+      let poolInfo = balancesWithPoolInfo[0].poolInfo;
+      let balances: BigNumber[] = balancesWithPoolInfo.map(t => t.balance);
       const chain = this.api.runtimeChain.toString();
-      let balances: BigNumber[] = poolInfo.balances;
       let totalSupply: BigNumber = poolInfo.totalSupply;
       let feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
       let actualInputAmount = inputAmount._getInner().minus(feeAmount);
