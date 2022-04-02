@@ -6,7 +6,7 @@ import { EventRecord, Hash } from '@polkadot/types/interfaces';
 import { SignatureOptions } from '@polkadot/types/types';
 import * as fs from 'fs';
 const config = {
-  ws: 'ws://ec2-52-221-191-252.ap-southeast-1.compute.amazonaws.com:9944/',
+  ws: 'wss://karura-rpc-0.aca-api.network',
   seed: '//Bob',
 };
 
