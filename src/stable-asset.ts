@@ -226,7 +226,7 @@ export class StableAssetRx {
   }
 
   private getBalances(blockNumberWrap: BlockNumberWrap, liquidAssetExchangeRate: FixedPointNumber): Observable<BalanceWrap>[] {
-    return blockNumberWrap.poolInfo.assets.map(asset => {
+    return blockNumberWrap.poolInfo.assets.map((asset, index) => {
       let chain = this.api.runtimeChain.toString();
       let name = "";
       if (asset.type == 'Token') {
@@ -235,7 +235,7 @@ export class StableAssetRx {
       return this.api.query.tokens.accounts(blockNumberWrap.poolInfo.accountId, asset)
         .pipe(map(value => {
           let tmp: any = value;
-          let balance = new BigNumber(tmp.free.toString());
+          let balance = blockNumberWrap.poolInfo.balances[index];
           if (name === LIQUID_ASSET[chain]) {
             balance = balance.times(liquidAssetExchangeRate._getInner()).idiv(new BigNumber(10).pow(liquidAssetExchangeRate.getPrecision()));
           }
@@ -267,7 +267,7 @@ export class StableAssetRx {
 
       let chain = this.api.runtimeChain.toString();
       let input = inputToken.name === LIQUID_ASSET[chain] ? inputAmount.mul(liquidAssetExchangeRate) : inputAmount;
-      balances[inputIndex] = balances[inputIndex].plus(input._getInner().times(poolInfo.precisions[outputIndex]));
+      balances[inputIndex] = balances[inputIndex].plus(input._getInner().times(poolInfo.precisions[inputIndex]));
       let y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]);
 
