@@ -235,7 +235,7 @@ export class StableAssetRx {
       return this.api.query.tokens.accounts(blockNumberWrap.poolInfo.accountId, asset)
         .pipe(map(value => {
           let tmp: any = value;
-          let balance = blockNumberWrap.poolInfo.balances[index];
+          let balance = blockNumberWrap.poolInfo.balances[index].div(new BigNumber(blockNumberWrap.poolInfo.precisions[index]));
           if (name === LIQUID_ASSET[chain]) {
             balance = balance.times(liquidAssetExchangeRate._getInner()).idiv(new BigNumber(10).pow(liquidAssetExchangeRate.getPrecision()));
           }
@@ -250,20 +250,10 @@ export class StableAssetRx {
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
       inputAmount: FixedPointNumber, slippage: number, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
 
-    let blockNumberWrapObservable = this.getPoolInfo(poolId)
-      .pipe(mergeMap(poolInfo => {
-        return this.getBlockNumber(poolInfo);
-      }));
-    let balanceObservable = blockNumberWrapObservable.pipe(mergeMap(poolInfo => {
-      return combineLatest(this.getBalances(poolInfo, liquidAssetExchangeRate));
-    }));
-
-    return balanceObservable.pipe(map((balancesWithPoolInfo) => {
-      let poolInfo = balancesWithPoolInfo[0].blockNumberWrap.poolInfo;
-      let blockNumber = balancesWithPoolInfo[0].blockNumberWrap.blockNumber;
-      let balances: BigNumber[] = balancesWithPoolInfo.map(t => t.balance);
-      let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumber);
-      let d: BigNumber = this.getD(balances, a);
+    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+      let balances: BigNumber[] = poolInfo.balances;
+      let a: BigNumber = poolInfo.a;
+      let d: BigNumber = poolInfo.totalSupply;
 
       let chain = this.api.runtimeChain.toString();
       let input = inputToken.name === LIQUID_ASSET[chain] ? inputAmount.mul(liquidAssetExchangeRate) : inputAmount;
@@ -322,19 +312,10 @@ export class StableAssetRx {
       inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
     }
 
-    let blockNumberWrapObservable = this.getPoolInfo(poolId).pipe(mergeMap(poolInfo => {
-      return this.getBlockNumber(poolInfo);
-    }));
-    let balanceObservable = blockNumberWrapObservable.pipe(mergeMap(poolInfo => {
-      return combineLatest(this.getBalances(poolInfo, liquidExchangeRate));
-    }));
-
-    return balanceObservable.pipe(map((balancesWithPoolInfo) => {
-      let poolInfo = balancesWithPoolInfo[0].blockNumberWrap.poolInfo;
-      let blockNumber = balancesWithPoolInfo[0].blockNumberWrap.blockNumber;
-      let balances: BigNumber[] = balancesWithPoolInfo.map(t => t.balance);
-      let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumber);
-      let oldD: BigNumber = this.getD(balances, a);
+    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+      let balances: BigNumber[] = poolInfo.balances;
+      let a: BigNumber = poolInfo.a;
+      let oldD: BigNumber = poolInfo.totalSupply;
 
       for (let i = 0; i < balances.length; i++) {
         if (inputs[i].isZero()) {
@@ -374,26 +355,18 @@ export class StableAssetRx {
 
   public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, outputTokens: Token[],
     slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableRedeemProportionResult> {
-      // TODO Total supply should consider yield
-    let blockNumberWrapObservable = this.getPoolInfo(poolId).pipe(mergeMap(poolInfo => {
-      return this.getBlockNumber(poolInfo);
-    }));
-    let balanceObservable = blockNumberWrapObservable.pipe(mergeMap(poolInfo => {
-      return combineLatest(this.getBalances(poolInfo, liquidExchangeRate));
-    }));
-    return balanceObservable.pipe(map((balancesWithPoolInfo) => {
+
+    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       const chain = this.api.runtimeChain.toString();
-      let poolInfo = balancesWithPoolInfo[0].blockNumberWrap.poolInfo;
-      let blockNumber = balancesWithPoolInfo[0].blockNumberWrap.blockNumber;
-      let balances: BigNumber[] = balancesWithPoolInfo.map(t => t.balance);
-      let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumber);
-      let totalSupply: BigNumber = this.getD(balances, a);
+      let balances: BigNumber[] = poolInfo.balances;
+      let a: BigNumber = poolInfo.a;
+      let totalSupply: BigNumber = poolInfo.totalSupply;
       let feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
       let actualInputAmount = inputAmount._getInner().minus(feeAmount);
 
       let outputAmounts: FixedPointNumber[] = [];
       for (let i = 0; i < balances.length; i++) {
-        const output = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply);
+        const output = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply).idiv(poolInfo.precisions[i]);
         let outputAmount = FixedPointNumber._fromBN(output, outputTokens[i].decimal);
         if (outputTokens[i].name === LIQUID_ASSET[chain]) {
           outputAmount = outputAmount.div(liquidExchangeRate);
