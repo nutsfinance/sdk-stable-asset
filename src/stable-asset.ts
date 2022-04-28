@@ -250,9 +250,15 @@ export class StableAssetRx {
   public getSwapAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
       inputAmount: FixedPointNumber, slippage: number, liquidAssetExchangeRate: FixedPointNumber): Observable<StableSwapResult> {
 
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+    let blockNumberWrapObservable = this.getPoolInfo(poolId)
+      .pipe(mergeMap(poolInfo => {
+        return this.getBlockNumber(poolInfo);
+      }));
+
+    return blockNumberWrapObservable.pipe(map((blockNumberWrap) => {
+      let poolInfo = blockNumberWrap.poolInfo;
       let balances: BigNumber[] = poolInfo.balances;
-      let a: BigNumber = poolInfo.a;
+      let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
       let d: BigNumber = poolInfo.totalSupply;
 
       let chain = this.api.runtimeChain.toString();
@@ -312,9 +318,15 @@ export class StableAssetRx {
       inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
     }
 
-    return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
+    let blockNumberWrapObservable = this.getPoolInfo(poolId)
+      .pipe(mergeMap(poolInfo => {
+        return this.getBlockNumber(poolInfo);
+      }));
+
+    return blockNumberWrapObservable.pipe(map((blockNumberWrap) => {
+      let poolInfo = blockNumberWrap.poolInfo;
       let balances: BigNumber[] = poolInfo.balances;
-      let a: BigNumber = poolInfo.a;
+      let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
       let oldD: BigNumber = poolInfo.totalSupply;
 
       for (let i = 0; i < balances.length; i++) {
@@ -359,7 +371,6 @@ export class StableAssetRx {
     return this.getPoolInfo(poolId).pipe(map((poolInfo) => {
       const chain = this.api.runtimeChain.toString();
       let balances: BigNumber[] = poolInfo.balances;
-      let a: BigNumber = poolInfo.a;
       let totalSupply: BigNumber = poolInfo.totalSupply;
       let feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
       let actualInputAmount = inputAmount._getInner().minus(feeAmount);
