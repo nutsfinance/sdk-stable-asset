@@ -310,6 +310,11 @@ export class StableAssetRx {
     }));
   }
 
+  public getSwapInAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
+    outputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<FixedPointNumber> {
+
+    }
+
   public getMintAmount(poolId: number, inputTokens: Token[], inputAmounts: FixedPointNumber[],
       slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableMintResult> {
     const inputs: FixedPointNumber[] = [];
