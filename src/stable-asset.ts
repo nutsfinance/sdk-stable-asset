@@ -59,6 +59,7 @@ export const LIQUID_ASSET: LiquidAssetConfig = {
 
 const FEE_DENOMINATOR: BigNumber = new BigNumber("10000000000");
 const A_PRECISION: BigNumber = new BigNumber("100");
+const SWAP_EXACT_OVER_AMOUNT: BigNumber = new BigNumber("100");
 
 export class StableAssetRx {
   private api: ApiRx;
@@ -312,7 +313,31 @@ export class StableAssetRx {
 
   public getSwapInAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
     outputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<FixedPointNumber> {
+      let blockNumberWrapObservable = this.getPoolInfo(poolId)
+        .pipe(mergeMap(poolInfo => {
+          return this.getBlockNumber(poolInfo);
+        }));
 
+      return blockNumberWrapObservable.pipe(map((blockNumberWrap) => {
+        let poolInfo = blockNumberWrap.poolInfo;
+        let balances: BigNumber[] = poolInfo.balances;
+        let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
+        let d: BigNumber = poolInfo.totalSupply;
+
+        let chain = this.api.runtimeChain.toString();
+        let output = outputToken.name === LIQUID_ASSET[chain] ? outputAmount.mul(liquidAssetExchangeRate) : outputAmount;
+        let dy: BigNumber = output._getInner();
+
+        if (poolInfo.swapFee.isGreaterThan(new BigNumber(0))) {
+          let diff = FEE_DENOMINATOR.minus(poolInfo.swapFee);
+          dy = dy.times(FEE_DENOMINATOR).idiv(diff);
+        }
+        balances[outputIndex] = balances[outputIndex].minus(dy.times(poolInfo.precisions[outputIndex]));
+        let y: BigNumber = this.getY(balances, inputIndex, d, a);
+        let dx: BigNumber = y.minus(balances[inputIndex]).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]).plus(SWAP_EXACT_OVER_AMOUNT);
+        let result = FixedPointNumber._fromBN(dx, Math.log10(poolInfo.precision));;
+        return inputToken.name === LIQUID_ASSET[chain] ? result.div(liquidAssetExchangeRate) : result;
+      }));
     }
 
   public getMintAmount(poolId: number, inputTokens: Token[], inputAmounts: FixedPointNumber[],
