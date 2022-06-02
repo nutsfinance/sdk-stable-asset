@@ -1,6 +1,6 @@
 import { FixedPointNumber, Token } from '@acala-network/sdk-core';
 
-export interface StableSwapParameters {
+export interface SwapOutParameters {
   poolId: number;
   inputIndex: number;
   outputIndex: number;
@@ -9,7 +9,7 @@ export interface StableSwapParameters {
   inputAmount: FixedPointNumber;
 }
 
-export class StableSwapResult {
+export class SwapOutResult {
   // Display values
   public poolId: number;
   public inputIndex: number;
@@ -21,11 +21,11 @@ export class StableSwapResult {
   public feeAmount: FixedPointNumber;
   public slippage: number;
   public assetCount: number;
-  public liquidAsset: string;
+  public liquidToken: Token;
   public liquidExchangeRate: FixedPointNumber;
 
-  constructor(params: StableSwapParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
-      slippage: number, assetCount: number, liquidAsset: string, liquidExchangeRate: FixedPointNumber) {
+  constructor(params: SwapOutParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
+      slippage: number, assetCount: number, liquidToken: Token, liquidExchangeRate: FixedPointNumber) {
     this.poolId = params.poolId;
     this.inputIndex = params.inputIndex;
     this.outputIndex = params.outputIndex;
@@ -36,7 +36,7 @@ export class StableSwapResult {
     this.feeAmount = feeAmount;
     this.assetCount = assetCount;
     this.slippage = slippage;
-    this.liquidAsset = liquidAsset;
+    this.liquidToken = liquidToken;
     this.liquidExchangeRate = liquidExchangeRate;
   }
 
@@ -47,8 +47,8 @@ export class StableSwapResult {
 
   // Convert to underlying value sent to chain
   public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, inputAmount: string, minMintAmount: string, assetLength: number] {
-    let input = this.inputToken.name === this.liquidAsset ? this.inputAmount.mul(this.liquidExchangeRate) : this.inputAmount;
-    let output = this.outputToken.name === this.liquidAsset ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
+    let input = this.inputToken.name === this.liquidToken.name ? this.inputAmount.mul(this.liquidExchangeRate) : this.inputAmount;
+    let output = this.outputToken.name === this.liquidToken.name ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
     return [
         this.poolId,
         this.inputIndex,
