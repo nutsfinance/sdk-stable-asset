@@ -1,12 +1,12 @@
 import { FixedPointNumber, Token } from '@acala-network/sdk-core';
 
-export interface StableMintParameters {
+export interface MintParameters {
     poolId: number;
     inputTokens: Token[];
     inputAmounts: FixedPointNumber[];
 }
 
-export class StableMintResult {
+export class MintResult {
   // Display values
   public poolId: number;
   public inputTokens: Token[];
@@ -14,18 +14,18 @@ export class StableMintResult {
   public outputAmount: FixedPointNumber;
   public feeAmount: FixedPointNumber;
   public slippage: number;
-  public liquidAsset: string;
+  public liquidToken: Token;
   public liquidExchangeRate: FixedPointNumber;
 
-  constructor(params: StableMintParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
-    slippage: number, liquidAsset: string, liquidExchangeRate: FixedPointNumber) {
+  constructor(params: MintParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
+    slippage: number, liquidToken: Token, liquidExchangeRate: FixedPointNumber) {
     this.poolId = params.poolId;
     this.inputTokens = params.inputTokens;
     this.inputAmounts = params.inputAmounts;
     this.outputAmount = outputAmount;
     this.feeAmount = feeAmount;
     this.slippage = slippage;
-    this.liquidAsset = liquidAsset;
+    this.liquidToken = liquidToken;
     this.liquidExchangeRate = liquidExchangeRate;
   }
 
@@ -38,7 +38,7 @@ export class StableMintResult {
   public toChainData(): [poolId: number, inputAmounts: string[], minMintAmount: string] {
     const inputs: FixedPointNumber[] = [];
     for (let i = 0; i < this.inputTokens.length; i++) {
-      inputs.push(this.inputTokens[i].name === this.liquidAsset ? this.inputAmounts[i].mul(this.liquidExchangeRate) : this.inputAmounts[i]);
+      inputs.push(this.inputTokens[i].name === this.liquidToken.name ? this.inputAmounts[i].mul(this.liquidExchangeRate) : this.inputAmounts[i]);
     }
     return [
         this.poolId,

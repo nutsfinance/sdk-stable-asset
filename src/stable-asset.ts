@@ -10,7 +10,7 @@ import { BigNumber } from 'bignumber.js';
 
 import { SwapOutParameters, SwapOutResult } from './swap-out-result';
 import { SwapInParameters, SwapInResult } from './swap-in-result';
-import { StableMintResult } from './stable-mint-result';
+import { MintResult } from './mint-result';
 import { StableRedeemProportionResult } from './stable-redeem-proportion-result';
 
 export interface PoolInfo {
@@ -301,7 +301,7 @@ export class StableAssetRx {
 
   public getSwapInAmount(poolId: number, inputIndex: number, outputIndex: number, outputAmount: FixedPointNumber, slippage: number,
     liquidAssetExchangeRate: FixedPointNumber): Observable<SwapInResult> {
-      
+
       let blockNumberWrapObservable = this.subscribePool(poolId)
         .pipe(mergeMap(poolInfo => {
           return this.getBlockNumber(poolInfo);
@@ -356,24 +356,24 @@ export class StableAssetRx {
       }));
     }
 
-  public getMintAmount(poolId: number, inputTokens: Token[], inputAmounts: FixedPointNumber[],
-      slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableMintResult> {
-    const inputs: FixedPointNumber[] = [];
-    const chain = this.api.runtimeChain.toString();
-    for (let i = 0; i < inputTokens.length; i++) {
-      inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
-    }
-
+  public getMintAmount(poolId: number, inputAmounts: FixedPointNumber[], slippage: number, liquidExchangeRate: FixedPointNumber): Observable<MintResult> {
     let blockNumberWrapObservable = this.subscribePool(poolId)
       .pipe(mergeMap(poolInfo => {
         return this.getBlockNumber(poolInfo);
       }));
 
     return blockNumberWrapObservable.pipe(map((blockNumberWrap) => {
-      let poolInfo = blockNumberWrap.poolInfo;
-      let balances: BigNumber[] = poolInfo.balances;
-      let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
-      let oldD: BigNumber = poolInfo.totalSupply;
+      const poolInfo = blockNumberWrap.poolInfo;
+      const balances: BigNumber[] = poolInfo.balances;
+      const a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
+      const oldD: BigNumber = poolInfo.totalSupply;
+      const inputTokens = poolInfo.assets.map(asset => this.wallet.__getToken(asset));
+      const inputs: FixedPointNumber[] = [];
+      const chain = this.api.runtimeChain.toString();
+      for (let i = 0; i < inputTokens.length; i++) {
+        inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
+      }
+      const liquidToken = this.wallet.__getToken(this.api.consts.homa.liquidCurrencyId);
 
       for (let i = 0; i < balances.length; i++) {
         if (inputs[i].isZero()) {
@@ -397,7 +397,7 @@ export class StableAssetRx {
 
       const mintAmount = FixedPointNumber._fromBN(output, Math.log10(poolInfo.precision));
       const feeAmount = FixedPointNumber._fromBN(fee, Math.log10(poolInfo.precision));
-      return new StableMintResult({
+      return new MintResult({
           poolId,
           inputTokens,
           inputAmounts
@@ -405,7 +405,7 @@ export class StableAssetRx {
         mintAmount,
         feeAmount,
         slippage,
-        LIQUID_ASSET[chain],
+        liquidToken,
         liquidExchangeRate
       );
     }));
