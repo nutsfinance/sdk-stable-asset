@@ -9,6 +9,7 @@ import { Codec } from '@polkadot/types/types';
 import { BigNumber } from 'bignumber.js';
 
 import { SwapOutParameters, SwapOutResult } from './swap-out-result';
+import { SwapInParameters, SwapInResult } from './swap-in-result';
 import { StableMintResult } from './stable-mint-result';
 import { StableRedeemProportionResult } from './stable-redeem-proportion-result';
 
@@ -250,9 +251,9 @@ export class StableAssetRx {
       const outputToken = this.wallet.__getToken(poolInfo.assets[outputIndex]);
       const liquidToken = this.wallet.__getToken(this.api.consts.homa.liquidCurrencyId);
 
-      let input = inputToken.name === liquidToken.name ? inputAmount.mul(liquidAssetExchangeRate) : inputAmount;
+      const input = inputToken.name === liquidToken.name ? inputAmount.mul(liquidAssetExchangeRate) : inputAmount;
       balances[inputIndex] = balances[inputIndex].plus(input._getInner().times(poolInfo.precisions[inputIndex]));
-      let y: BigNumber = this.getY(balances, outputIndex, d, a);
+      const y: BigNumber = this.getY(balances, outputIndex, d, a);
       let dy: BigNumber = balances[outputIndex].minus(y).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]);
 
       let fee: BigNumber = new BigNumber(0);
@@ -298,32 +299,60 @@ export class StableAssetRx {
     }));
   }
 
-  public getSwapInAmount(poolId: number, inputIndex: number, outputIndex: number, inputToken: Token, outputToken: Token,
-    outputAmount: FixedPointNumber, liquidAssetExchangeRate: FixedPointNumber): Observable<FixedPointNumber> {
+  public getSwapInAmount(poolId: number, inputIndex: number, outputIndex: number, outputAmount: FixedPointNumber, slippage: number,
+    liquidAssetExchangeRate: FixedPointNumber): Observable<SwapInResult> {
+      
       let blockNumberWrapObservable = this.subscribePool(poolId)
         .pipe(mergeMap(poolInfo => {
           return this.getBlockNumber(poolInfo);
         }));
 
       return blockNumberWrapObservable.pipe(map((blockNumberWrap) => {
-        let poolInfo = blockNumberWrap.poolInfo;
-        let balances: BigNumber[] = poolInfo.balances;
-        let a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
-        let d: BigNumber = poolInfo.totalSupply;
+        const poolInfo = blockNumberWrap.poolInfo;
+        const balances: BigNumber[] = poolInfo.balances;
+        const a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
+        const d: BigNumber = poolInfo.totalSupply;
+        const inputToken = this.wallet.__getToken(poolInfo.assets[inputIndex]);
+        const outputToken = this.wallet.__getToken(poolInfo.assets[outputIndex]);
+        const liquidToken = this.wallet.__getToken(this.api.consts.homa.liquidCurrencyId);
 
-        let chain = this.api.runtimeChain.toString();
-        let output = outputToken.name === LIQUID_ASSET[chain] ? outputAmount.mul(liquidAssetExchangeRate) : outputAmount;
+        const output = outputToken.name === liquidToken.name ? outputAmount.mul(liquidAssetExchangeRate) : outputAmount;
         let dy: BigNumber = output._getInner();
+        let fee: BigNumber = new BigNumber(0);
 
         if (poolInfo.swapFee.isGreaterThan(new BigNumber(0))) {
           let diff = FEE_DENOMINATOR.minus(poolInfo.swapFee);
           dy = dy.times(FEE_DENOMINATOR).idiv(diff);
+          fee = dy.minus(output._getInner());
         }
         balances[outputIndex] = balances[outputIndex].minus(dy.times(poolInfo.precisions[outputIndex]));
-        let y: BigNumber = this.getY(balances, inputIndex, d, a);
-        let dx: BigNumber = y.minus(balances[inputIndex]).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]).plus(SWAP_EXACT_OVER_AMOUNT);
-        let result = FixedPointNumber._fromBN(dx, Math.log10(poolInfo.precision));;
-        return inputToken.name === LIQUID_ASSET[chain] ? result.div(liquidAssetExchangeRate) : result;
+        let x: BigNumber = this.getY(balances, inputIndex, d, a);
+        let dx: BigNumber = x.minus(balances[inputIndex]).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]).plus(SWAP_EXACT_OVER_AMOUNT);
+
+        let inputAmount = FixedPointNumber._fromBN(dx, inputToken.decimals);
+        if (inputToken.name === liquidToken.name) {
+          inputAmount = inputAmount.div(liquidAssetExchangeRate);
+        }
+        let feeAmount = FixedPointNumber._fromBN(fee, outputToken.decimals);
+
+        const swapParamters: SwapInParameters = {
+          poolId,
+          inputIndex,
+          outputIndex,
+          inputToken,
+          outputToken,
+          outputAmount
+        };
+        
+        return new SwapInResult(
+          swapParamters,
+          outputAmount,
+          feeAmount,
+          slippage,
+          poolInfo.assets.length,
+          liquidToken,
+          liquidAssetExchangeRate
+        );
       }));
     }
 
