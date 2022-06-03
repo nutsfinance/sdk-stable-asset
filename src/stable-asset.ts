@@ -1,6 +1,6 @@
 import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
-import { Token, TokenType, FixedPointNumber } from '@acala-network/sdk-core';
+import { TokenType, FixedPointNumber } from '@acala-network/sdk-core';
 import { Wallet } from '@acala-network/sdk';
 import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
 import { ApiRx } from '@polkadot/api';
@@ -11,7 +11,7 @@ import { BigNumber } from 'bignumber.js';
 import { SwapOutParameters, SwapOutResult } from './swap-out-result';
 import { SwapInParameters, SwapInResult } from './swap-in-result';
 import { MintResult } from './mint-result';
-import { StableRedeemProportionResult } from './stable-redeem-proportion-result';
+import { RedeemProportionResult } from './redeem-proportion-result';
 
 export interface PoolInfo {
   poolAsset: CurrencyId,
@@ -31,30 +31,9 @@ export interface PoolInfo {
   precision: number,
 }
 
-export type LiquidAssetConfig = {
-  [chain in string]: string;
-};
-
-export const LIQUID_ASSET: LiquidAssetConfig = {
-  "Acala": "LDOT",
-  // Karura main
-  "Karura": "LKSM",
-  // Karura testnet
-  "Acala Karura Dev": "LKSM",
-  // Mandala testnet
-  "Mandala Dev": "LKSM",
-  // Mandala main
-  "Acala Mandala TC7": "LKSM"
-};
-
 interface BlockNumberWrap {
   poolInfo: PoolInfo,
   blockNumber: BigNumber
-}
-
-interface BalanceWrap {
-  blockNumberWrap: BlockNumberWrap,
-  balance: BigNumber
 }
 
 const FEE_DENOMINATOR: BigNumber = new BigNumber("10000000000");
@@ -369,11 +348,10 @@ export class StableAssetRx {
       const oldD: BigNumber = poolInfo.totalSupply;
       const inputTokens = poolInfo.assets.map(asset => this.wallet.__getToken(asset));
       const inputs: FixedPointNumber[] = [];
-      const chain = this.api.runtimeChain.toString();
-      for (let i = 0; i < inputTokens.length; i++) {
-        inputs.push(inputTokens[i].name === LIQUID_ASSET[chain] ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
-      }
       const liquidToken = this.wallet.__getToken(this.api.consts.homa.liquidCurrencyId);
+      for (let i = 0; i < inputTokens.length; i++) {
+        inputs.push(inputTokens[i].name === liquidToken.name ? inputAmounts[i].mul(liquidExchangeRate) : inputAmounts[i]);
+      }
 
       for (let i = 0; i < balances.length; i++) {
         if (inputs[i].isZero()) {
@@ -411,27 +389,27 @@ export class StableAssetRx {
     }));
   }
 
-  public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, outputTokens: Token[],
-    slippage: number, liquidExchangeRate: FixedPointNumber): Observable<StableRedeemProportionResult> {
+  public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, slippage: number, liquidExchangeRate: FixedPointNumber):Observable<RedeemProportionResult> {
 
     return this.subscribePool(poolId).pipe(map((poolInfo) => {
-      const chain = this.api.runtimeChain.toString();
-      let balances: BigNumber[] = poolInfo.balances;
-      let totalSupply: BigNumber = poolInfo.totalSupply;
-      let feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
-      let actualInputAmount = inputAmount._getInner().minus(feeAmount);
+      const balances: BigNumber[] = poolInfo.balances;
+      const totalSupply: BigNumber = poolInfo.totalSupply;
+      const feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
+      const actualInputAmount = inputAmount._getInner().minus(feeAmount);
+      const outputTokens = poolInfo.assets.map(asset => this.wallet.__getToken(asset));
+      const liquidToken = this.wallet.__getToken(this.api.consts.homa.liquidCurrencyId);
 
       let outputAmounts: FixedPointNumber[] = [];
       for (let i = 0; i < balances.length; i++) {
         const output = balances[i].multipliedBy(actualInputAmount).idiv(totalSupply).idiv(poolInfo.precisions[i]);
         let outputAmount = FixedPointNumber._fromBN(output, outputTokens[i].decimal);
-        if (outputTokens[i].name === LIQUID_ASSET[chain]) {
+        if (outputTokens[i].name === liquidToken.name) {
           outputAmount = outputAmount.div(liquidExchangeRate);
         }
         outputAmounts.push(outputAmount);
       }
 
-      return new StableRedeemProportionResult({
+      return new RedeemProportionResult({
           poolId,
           inputAmount,
           outputTokens
@@ -439,7 +417,7 @@ export class StableAssetRx {
         outputAmounts,
         FixedPointNumber._fromBN(feeAmount, poolInfo.precision),
         slippage,
-        LIQUID_ASSET[chain],
+        liquidToken,
         liquidExchangeRate
       );
     }));
