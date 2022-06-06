@@ -2,7 +2,8 @@ import { Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 import { TokenType, FixedPointNumber } from '@acala-network/sdk-core';
 import { Wallet } from '@acala-network/sdk';
-import { CurrencyId, AccountId } from '@acala-network/types/interfaces';
+import { AccountId } from '@acala-network/types/interfaces';
+import { AcalaPrimitivesCurrencyCurrencyId } from '@acala-network/types/interfaces/types-lookup';
 import { ApiRx } from '@polkadot/api';
 import { Option } from '@polkadot/types/codec';
 import { Codec } from '@polkadot/types/types';
@@ -14,8 +15,8 @@ import { MintResult } from './mint-result';
 import { RedeemProportionResult } from './redeem-proportion-result';
 
 export interface PoolInfo {
-  poolAsset: CurrencyId,
-  assets: CurrencyId[],
+  poolAsset: AcalaPrimitivesCurrencyCurrencyId,
+  assets: AcalaPrimitivesCurrencyCurrencyId[],
   precisions: BigNumber[],
   mintFee: BigNumber,
   swapFee: BigNumber,
@@ -325,7 +326,7 @@ export class StableAssetRx {
         
         return new SwapInResult(
           swapParamters,
-          outputAmount,
+          inputAmount,
           feeAmount,
           slippage,
           poolInfo.assets.length,

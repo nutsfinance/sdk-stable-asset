@@ -24,15 +24,15 @@ export class SwapInResult {
   public liquidToken: Token;
   public liquidExchangeRate: FixedPointNumber;
 
-  constructor(params: SwapInParameters, outputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
+  constructor(params: SwapInParameters, inputAmount: FixedPointNumber, feeAmount: FixedPointNumber,
       slippage: number, assetCount: number, liquidToken: Token, liquidExchangeRate: FixedPointNumber) {
     this.poolId = params.poolId;
     this.inputIndex = params.inputIndex;
     this.outputIndex = params.outputIndex;
     this.inputToken = params.inputToken;
     this.outputToken = params.outputToken;
-    this.inputAmount = params.outputAmount;
-    this.outputAmount = outputAmount;
+    this.outputAmount = params.outputAmount;
+    this.inputAmount = inputAmount;
     this.feeAmount = feeAmount;
     this.assetCount = assetCount;
     this.slippage = slippage;
