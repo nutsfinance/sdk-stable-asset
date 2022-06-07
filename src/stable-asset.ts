@@ -307,7 +307,7 @@ export class StableAssetRx {
         }
         balances[outputIndex] = balances[outputIndex].minus(dy.times(poolInfo.precisions[outputIndex]));
         let x: BigNumber = this.getY(balances, inputIndex, d, a);
-        let dx: BigNumber = x.minus(balances[inputIndex]).minus(new BigNumber(1)).idiv(poolInfo.precisions[outputIndex]).plus(SWAP_EXACT_OVER_AMOUNT);
+        let dx: BigNumber = x.minus(balances[inputIndex]).minus(new BigNumber(1)).idiv(poolInfo.precisions[inputIndex]).plus(SWAP_EXACT_OVER_AMOUNT);
 
         let inputAmount = FixedPointNumber._fromBN(dx, inputToken.decimals);
         if (inputToken.name === liquidToken.name) {
