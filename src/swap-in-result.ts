@@ -46,15 +46,15 @@ export class SwapInResult {
   }
 
   // Convert to underlying value sent to chain
-  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, outputAmount: string, maxInputAmount: string, assetLength: number] {
+  public toChainData(): [poolId: number, inputIndex: number, outputIndex: number, maxInputAmount: string, outputAmount: string, assetLength: number] {
     let input = this.inputToken.name === this.liquidToken.name ? this.inputAmount.mul(this.liquidExchangeRate) : this.inputAmount;
     let output = this.outputToken.name === this.liquidToken.name ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
     return [
         this.poolId,
         this.inputIndex,
         this.outputIndex,
-        output.toChainData(),
         input.mul(new FixedPointNumber(1 + this.slippage)).toChainData(),
+        output.toChainData(),
         this.assetCount
     ];
   }
