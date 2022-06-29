@@ -418,13 +418,15 @@ export class StableAssetRx {
       return new RedeemSingleResult({
           poolId,
           inputAmount,
+          outputIndex,
           outputToken
         },
         outputAmount,
         FixedPointNumber._fromBN(feeAmount, poolInfo.precision),
         slippage,
         liquidToken,
-        liquidExchangeRate
+        liquidExchangeRate,
+        poolInfo.assets.length
       );
     }));
   }
