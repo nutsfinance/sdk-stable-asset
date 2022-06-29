@@ -13,6 +13,7 @@ import { SwapOutParameters, SwapOutResult } from './swap-out-result';
 import { SwapInParameters, SwapInResult } from './swap-in-result';
 import { MintResult } from './mint-result';
 import { RedeemProportionResult } from './redeem-proportion-result';
+import { RedeemSingleResult } from './redeem-single-result';
 
 export interface PoolInfo {
   poolAsset: AcalaPrimitivesCurrencyCurrencyId,
@@ -390,7 +391,46 @@ export class StableAssetRx {
     }));
   }
 
+  public getRedeemSingleAmount(poolId: number, inputAmount: FixedPointNumber, outputIndex: number, slippage: number, liquidExchangeRate: FixedPointNumber):Observable<RedeemSingleResult> {
+    let blockNumberWrapObservable = this.subscribePool(poolId)
+      .pipe(mergeMap(poolInfo => {
+        return this.getBlockNumber(poolInfo);
+      }));
+
+    return blockNumberWrapObservable.pipe(map((blockNumberWrap) => {
+      const poolInfo = blockNumberWrap.poolInfo;
+      const balances: BigNumber[] = poolInfo.balances;
+      const a: BigNumber = this.getA(poolInfo.a, poolInfo.aBlock, poolInfo.futureA, poolInfo.futureABlock, blockNumberWrap.blockNumber);
+
+      const totalSupply: BigNumber = poolInfo.totalSupply;
+      const feeAmount = inputAmount._getInner().times(poolInfo.redeemFee).idiv(FEE_DENOMINATOR);
+      const actualInputAmount = inputAmount._getInner().minus(feeAmount);
+      const outputToken = this.wallet.__getToken(poolInfo.assets[outputIndex]);
+      const liquidToken = this.wallet.__getToken(this.api.consts.homa.liquidCurrencyId);
+
+      const y = this.getY(balances, outputIndex, totalSupply.minus(actualInputAmount), a);
+      const dy = balances[outputIndex].minus(y).minus(1);
+      let outputAmount = FixedPointNumber._fromBN(dy, outputToken.decimals);
+      if (outputToken.name === liquidToken.name) {
+        outputAmount = outputAmount.div(liquidExchangeRate);
+      }
+
+      return new RedeemSingleResult({
+          poolId,
+          inputAmount,
+          outputToken
+        },
+        outputAmount,
+        FixedPointNumber._fromBN(feeAmount, poolInfo.precision),
+        slippage,
+        liquidToken,
+        liquidExchangeRate
+      );
+    }));
+  }
+
   public getRedeemProportionAmount(poolId: number, inputAmount: FixedPointNumber, slippage: number, liquidExchangeRate: FixedPointNumber):Observable<RedeemProportionResult> {
+
 
     return this.subscribePool(poolId).pipe(map((poolInfo) => {
       const balances: BigNumber[] = poolInfo.balances;
