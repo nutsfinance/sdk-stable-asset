@@ -559,7 +559,7 @@ export class StableAssetRx {
           totalSupply.minus(actualInputAmount),
           a
         );
-        const dy = balances[outputIndex].minus(y).minus(1);
+        const dy = balances[outputIndex].minus(y).minus(1).idiv(poolInfo.precisions[outputIndex]);
         let outputAmount = FixedPointNumber._fromBN(dy, outputToken.decimals);
         if (outputToken.name === liquidToken.name) {
           outputAmount = outputAmount.div(liquidExchangeRate);
