@@ -34,9 +34,9 @@ export class RedeemSingleResult {
         this.assetCount = assetCount;
     }
 
-    // Minimum output amount are based on actual token amounts
-    public getMinOutputAmount(): FixedPointNumber {
-        return this.outputAmount.mul(new FixedPointNumber(1 - this.slippage));
+    // Returns the actual output token amount
+    public getOutputAmount(): FixedPointNumber {
+        return this.outputToken.name === this.liquidToken.name ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
     }
 
     // Convert to underlying token amount before sending on chain

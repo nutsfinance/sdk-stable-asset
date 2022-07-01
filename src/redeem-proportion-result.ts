@@ -29,9 +29,15 @@ export class RedeemProportionResult {
         this.liquidExchangeRate = liquidExchangeRate;
     }
 
-    // Minimum output amounts are based on actual token amounts
-    public getMinOutputAmounts(): FixedPointNumber[] {
-        return this.outputAmounts.map(output => output.mul(new FixedPointNumber(1 - this.slippage)));
+    // Returns the actual output token amount
+    public getOutputAmounts(): FixedPointNumber[] {
+        const actualOutputAmounts = [];
+        for (let i = 0; i < this.outputTokens.length; i++) {
+            const outputAmount = this.outputTokens[i].name === this.liquidToken.name ? this.outputAmounts[i].mul(this.liquidExchangeRate) : this.outputAmounts[i];
+            actualOutputAmounts.push(outputAmount);
+        }
+
+        return actualOutputAmounts;
     }
 
     // Convert to underlying token amount before sending on chain
