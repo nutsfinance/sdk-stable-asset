@@ -29,17 +29,6 @@ export class RedeemProportionResult {
         this.liquidExchangeRate = liquidExchangeRate;
     }
 
-    // Returns the actual output token amount
-    public getOutputAmounts(): FixedPointNumber[] {
-        const actualOutputAmounts = [];
-        for (let i = 0; i < this.outputTokens.length; i++) {
-            const outputAmount = this.outputTokens[i].name === this.liquidToken.name ? this.outputAmounts[i].mul(this.liquidExchangeRate) : this.outputAmounts[i];
-            actualOutputAmounts.push(outputAmount);
-        }
-
-        return actualOutputAmounts;
-    }
-
     // Convert to underlying token amount before sending on chain
     public toChainData(): [poolId: number, inputAmount: string, minOutputAmounts: string[]] {
         const minOutputAmounts = [];

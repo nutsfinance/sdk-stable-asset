@@ -34,11 +34,6 @@ export class RedeemSingleResult {
         this.assetCount = assetCount;
     }
 
-    // Returns the actual output token amount
-    public getOutputAmount(): FixedPointNumber {
-        return this.outputToken.name === this.liquidToken.name ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
-    }
-
     // Convert to underlying token amount before sending on chain
     public toChainData(): [poolId: number, inputAmount: string, outputIndex: number, minOutputAmount: string, assetCount: number] {
         const outputAmount = this.outputToken.name === this.liquidToken.name ? this.outputAmount.mul(this.liquidExchangeRate) : this.outputAmount;
