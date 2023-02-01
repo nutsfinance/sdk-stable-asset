@@ -20,17 +20,21 @@
   },
   "homepage": "https://github.com/nutsfinance/sdk-stable-asset#readme",
   "dependencies": {
-    "@acala-network/sdk": "4.1.4-3",
-    "@acala-network/sdk-core": "4.1.4-3",
-    "@acala-network/types": "4.1.4-3",
-    "@polkadot/api": "^8.5.1",
-    "@polkadot/types": "^8.5.1",
     "axios": "^0.27.2",
     "bignumber.js": "^9.0.0",
     "lodash": "^4.17.20",
     "rxjs": "^7.4.0"
   },
+  "peerDependencies": {
+    "@acala-network/sdk": ">=4.1.4-3",
+    "@acala-network/sdk-core": ">=4.1.4-3",
+    "@acala-network/types": ">=4.1.4-3",
+    "@polkadot/api": ">=9"
+  },
   "devDependencies": {
-    "@types/lodash": "^4.14.161"
+    "@acala-network/sdk": "4.1.8-12",
+    "@acala-network/sdk-core": "4.1.8-12",
+    "@acala-network/types": "4.1.8-12",
+    "@polkadot/api": "9.13.2"
   }
 }

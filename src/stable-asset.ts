@@ -3,7 +3,7 @@ import { map, mergeMap } from "rxjs/operators";
 import { TokenType, FixedPointNumber } from "@acala-network/sdk-core";
 import { Wallet } from "@acala-network/sdk";
 import { AccountId } from "@acala-network/types/interfaces";
-import { AcalaPrimitivesCurrencyCurrencyId } from "@acala-network/types/interfaces/types-lookup";
+import { AcalaPrimitivesCurrencyCurrencyId } from '@polkadot/types/lookup';
 import { ApiRx } from "@polkadot/api";
 import { Option } from "@polkadot/types/codec";
 import { Codec } from "@polkadot/types/types";
@@ -14,6 +14,8 @@ import { SwapInParameters, SwapInResult } from "./swap-in-result";
 import { MintResult } from "./mint-result";
 import { RedeemProportionResult } from "./redeem-proportion-result";
 import { RedeemSingleResult } from "./redeem-single-result";
+
+import '@acala-network/types/lookup/types-acala'
 
 export interface PoolInfo {
   poolAsset: AcalaPrimitivesCurrencyCurrencyId;
